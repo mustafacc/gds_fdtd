@@ -125,8 +125,8 @@ def get_devrec(c, layer, dbu=0.001):
                          for p in [p.to_simple_polygon() for p in [DevRec_polygon]]][0]
     x = [i[0] for i in polygons_vertices]
     y = [i[1] for i in polygons_vertices]
-    sim_x = abs(abs(min(x))-abs(max(x)))
-    sim_y = abs(abs(min(y))-abs(max(y)))
+    sim_x = abs(min(x)-max(x))
+    sim_y = abs(min(y)-max(y))
     center_x = (min(x)+max(x))/2
     center_y = (min(y)+max(y))/2
     return polygons_vertices, sim_x, sim_y, center_x, center_y

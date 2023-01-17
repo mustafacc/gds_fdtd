@@ -33,7 +33,7 @@ z_span = 4  # simulation z-span
 in_port = 'opt1'  # input port
 wavl_min = 1.5  # simulation wavelength start (microns)
 wavl_max = 1.6  # simulation wavelength end (microns)
-wavl_pts = 11
+wavl_pts = 51
 
 # define materials structures
 mat_dev = td.material_library["cSi"]["Li1993_293K"]

@@ -26,8 +26,10 @@ sbend_l = 7
 ly = pya.Layout()
 dbu = 0.001  # layout's database unit (in microns)
 
+fname = "ex3_DirectionalCoupler"
+
 # create a cell object
-cell = ly.create_cell('DirectionalCoupler')
+cell = ly.create_cell(fname)
 
 # define layers
 layer_device = ly.layer(1, 0)  # layer to define device's objects
@@ -115,24 +117,23 @@ geometry.make_pin(cell, 'opt4', [dc_length/2+sbend_l+l_extra, -sbend_h -
                                  wg_width/2 - dc_gap/2], wg_width, layer_pinrec, direction=0)
 
 # export layout
-fname = "ex3_DirectionalCoupler.oas"
 gzip = False
 options = pya.SaveLayoutOptions()
-ly.write(fname, gzip, options)
+ly.write(fname+'.oas', gzip, options)
 
 # %% extract the gds cell parameters for simulation and setup simulation
 # define geometry
 thick_dev = 0.22  # device layer thickness
 thick_sub = 2  # substrate thickness
 thick_super = 3  # superstrate thickness (microns)
-sidewall_angle = 85  # device layer sidewall angle (degrees)
+sidewall_angle = 88  # device layer sidewall angle (degrees)
 z_span = 4  # simulation z-span
 
 # frequency and bandwidth of pulsed excitation
 in_port = 'opt1'  # input port
 wavl_min = 1.5  # simulation wavelength start (microns)
 wavl_max = 1.6  # simulation wavelength end (microns)
-wavl_pts = 11
+wavl_pts = 51
 
 # define materials structures
 mat_dev = td.material_library["cSi"]["Li1993_293K"]

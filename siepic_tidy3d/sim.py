@@ -142,9 +142,11 @@ def make_sim(cell, ly, layer_device, layer_devrec, layer_pinrec, in_port='opt1',
     import matplotlib.pyplot as plt
     from . import extend
 
-    freq0 = td.C_0/((wavl_max+wavl_min)/2)
+    lda0 = (wavl_max+wavl_min)/2
+    lda_bw = (wavl_max-wavl_min)
+    freq0 = td.C_0/lda0
     freqs = td.C_0/np.linspace(wavl_min, wavl_max, wavl_pts)
-    fwidth = 0.5*freq0
+    fwidth = 0.5*td.C_0*lda_bw/(lda0**2)# 0.5*freq0
 
     polygons_device = extend.get_polygons(cell, layer_device, ly.dbu)
     devrec, sim_x, sim_y, center_x, center_y = extend.get_devrec(
