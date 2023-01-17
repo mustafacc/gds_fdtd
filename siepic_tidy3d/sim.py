@@ -5,6 +5,19 @@ Wrapper methods to build simulations with Tidy3D.
 
 @author: Mustafa Hammood
 """
+import tidy3d as td
+
+
+def load_gds(fname):
+    import klayout.db as pya
+    ly = pya.Layout()
+    lmap = ly.read(fname+'.gds')
+    if ly.cells() > 1:
+        ValueError('More than one top cell found, ensure only 1 top cell exists.')
+    else:
+        cell = ly.top_cell()
+    return cell, ly
+
 
 def make_structures(polygons_device, devrec, thick_dev, thick_sub, thick_super, mat_dev, mat_sub, mat_super, sidewall_angle=85):
     import tidy3d as td
@@ -72,7 +85,7 @@ def make_source(port, width=3, depth=2, thick_dev=0.22, freq0=2e14, fwidth=1e13,
     return msource
 
 
-def make_monitors(ports, thick_dev=0.22, freq0=2e14, freqs=2e14, buffer=0.5):
+def make_monitors(ports, thick_dev=0.22, freqs=2e14, buffer=0.5):
     """Create monitors for a given list of ports."""
     import tidy3d as td
     monitors = []
@@ -96,7 +109,7 @@ def make_monitors(ports, thick_dev=0.22, freq0=2e14, freqs=2e14, buffer=0.5):
             size=[0, ports[p]['width']*5, thick_dev*10],
             freqs=freqs,
             mode_spec=td.ModeSpec(),
-            name=str(p),
+            name=ports[p]['name'],
         ))
     # field monitor
     monitors.append(td.FieldMonitor(
@@ -106,3 +119,149 @@ def make_monitors(ports, thick_dev=0.22, freq0=2e14, freqs=2e14, buffer=0.5):
         name="field",
     ))
     return monitors
+
+
+def find_port(ports, in_port):
+    for p in ports:
+        if ports[p]['name'] == in_port:
+            return p
+    return
+
+
+def make_sim(cell, ly, layer_device, layer_devrec, layer_pinrec, in_port='opt1',
+             thick_dev=0.22, thick_sub=2, thick_super=3, angle=88, fwidth=9.6e13,
+             mat_dev=td.material_library["cSi"]["Li1993_293K"],
+             mat_sub=td.Medium(permittivity=1.48**2),
+             mat_super=td.Medium(permittivity=1.48**2),
+             wavl_min=1.5, wavl_max=1.6, wavl_pts=11, grid_cells_per_wvl=16,
+             boundary=td.BoundarySpec.all_sides(boundary=td.PML()), z_span=4,
+             visualize=False
+             ):
+    import tidy3d as td
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from . import extend
+
+    freq0 = td.C_0/((wavl_max+wavl_min)/2)
+    freqs = td.C_0/np.linspace(wavl_min, wavl_max, wavl_pts)
+    fwidth = 0.5*freq0
+
+    polygons_device = extend.get_polygons(cell, layer_device, ly.dbu)
+    devrec, sim_x, sim_y, center_x, center_y = extend.get_devrec(
+        cell, layer_devrec, ly.dbu)
+    ports = extend.get_ports(cell, layer_pinrec, ly.dbu)
+    structures = make_structures(polygons_device, devrec, thick_dev,
+                                 thick_sub, thick_super, mat_dev, mat_sub,
+                                 mat_super, angle)
+
+    # define source on a given port
+    input_port = find_port(ports, in_port)
+    source = make_source(
+        ports[input_port], thick_dev=thick_dev, freq0=freq0, fwidth=fwidth)
+    # define monitors|
+    monitors = make_monitors(ports, thick_dev, freqs=freqs)
+
+    # simulation domain size (in microns)
+    sim_size = [sim_x, sim_y, z_span]
+
+    run_time = 8*max(sim_size)/td.C_0  # 85/fwidth  # sim. time in secs
+
+    # initialize the simulation
+    simulation = td.Simulation(
+        size=sim_size,
+        grid_spec=td.GridSpec.auto(min_steps_per_wvl=grid_cells_per_wvl),
+        structures=structures,
+        sources=[source],
+        monitors=monitors,
+        run_time=run_time,
+        boundary_spec=boundary,
+        center=(center_x, center_y, 0),
+    )
+
+    if visualize:
+        for m in simulation.monitors:
+            m.help()
+
+        source.source_time.plot(np.linspace(0, run_time, 1001))
+        plt.show()
+
+        # visualize geometry
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 4))
+        simulation.plot(z=thick_dev/2, ax=ax1)
+        simulation.plot(x=0., ax=ax2)
+        ax2.set_xlim([-sim_y/2, sim_y/2])
+        plt.show()
+    return simulation
+
+
+def visualize_results(sim_data, cell, ly, layer_pinrec, in_port):
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import tidy3d as td
+    from . import extend
+
+    def get_num_ports(sim_data):
+        num_ports = 0
+        for i in sim_data.simulation.monitors:
+            if i.type == 'ModeMonitor':
+                num_ports += 1
+        return num_ports
+
+    def get_wavl_range(sim_data):
+        import tidy3d as td
+        import numpy as np
+        for i in sim_data.simulation.monitors:
+            if i.type == 'ModeMonitor':
+                wavl_min = td.C_0/i.freqs[0]
+                wavl_max = td.C_0/i.freqs[-1]
+                wavl_pts = np.size(i.freqs)
+                return wavl_min, wavl_max, wavl_pts
+
+    def get_directions(ports, in_port, sim_data):
+        num_ports = get_num_ports(sim_data)
+        directions = ['+', ]*num_ports
+        directions[in_port-1] = '-'
+        return tuple(directions)
+
+    def measure_transmission(sim_data, ports, num_ports):
+        """Constructs a "row" of the scattering matrix when sourced from top left port"""
+        input_port = find_port(ports, in_port)
+        input_amp = sim_data[in_port].amps.sel(direction="+")
+        wavl_min, wavl_max, wavl_pts = get_wavl_range(sim_data)
+        amps = np.zeros((num_ports, wavl_pts), dtype=complex)
+        directions = get_directions(ports, input_port, sim_data)
+        for i, (monitor, direction) in enumerate(
+            zip(sim_data.simulation.monitors[:num_ports], directions)
+        ):
+            amp = sim_data[monitor.name].amps.sel(direction=direction)
+            amp_normalized = amp / input_amp
+            amps[i] = np.squeeze(amp_normalized.values)
+
+        return amps
+
+    def get_field_monitor_z(sim_data):
+        for i in sim_data.simulation.monitors:
+            if i.type == 'FieldMonitor':
+                return i.center[2]
+
+    ports = extend.get_ports(cell, layer_pinrec, ly.dbu)
+    num_ports = get_num_ports(sim_data)
+    wavl_min, wavl_max, wavl_pts = get_wavl_range(sim_data)
+    amps_arms = measure_transmission(sim_data, ports, num_ports)
+    print("mode amplitudes in each port: \n")
+    fig, ax = plt.subplots(1, 1)
+    wavl = np.linspace(wavl_min, wavl_max, wavl_pts)
+    ax.set_xlabel('Wavelength [microns]')
+    ax.set_ylabel('Transmission [dB]')
+    for amp, monitor in zip(amps_arms, sim_data.simulation.monitors[:-1]):
+        print(f'\tmonitor     = "{monitor.name}"')
+        plt.plot(wavl, [10*np.log10(abs(i)**2)
+                 for i in amp], label=f"S{1}{monitor.name}")
+        print(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
+        print(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
+    fig.legend()
+
+    fig, ax = plt.subplots(1, 1, figsize=(16, 3))
+    sim_data.plot_field("field", "Ey", z=get_field_monitor_z(sim_data),
+                        freq=td.C_0/((wavl_max+wavl_min)/2), ax=ax)
+    plt.show()

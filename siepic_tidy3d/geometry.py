@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-KLayout-API geometry building assisting moduule.
+KLayout-API geometry building assisting module.
 
 @author: Mustafa Hammood, 2023
 """

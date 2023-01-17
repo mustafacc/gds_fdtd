@@ -60,6 +60,16 @@ def get_ports(c, layer, dbu=0.001):
             y = dbu*(p1.y + p2.y)/2
         return x, y
 
+    def get_name(c, x, y, dbu):
+        s = c.begin_shapes_rec(layer)
+        while not(s.at_end()):
+            if s.shape().is_text():
+                label_x = s.shape().text.x*dbu
+                label_y = s.shape().text.y*dbu
+                if label_x == x and label_y == y:
+                    return s.shape().text.string
+            s.next()
+
     ports = dict()
     s = c.begin_shapes_rec(layer)
     port_counter = 1
@@ -70,6 +80,8 @@ def get_ports(c, layer, dbu=0.001):
             ports[port_counter]['direction'] = get_direction(s.shape().path)
             ports[port_counter]['x'], ports[port_counter]['y'] = get_center(
                 s.shape().path, dbu)
+            ports[port_counter]['name'] = get_name(
+                c, ports[port_counter]['x'], ports[port_counter]['y'], dbu)
         s.next()
         port_counter += 1
     return ports
@@ -113,9 +125,11 @@ def get_devrec(c, layer, dbu=0.001):
                          for p in [p.to_simple_polygon() for p in [DevRec_polygon]]][0]
     x = [i[0] for i in polygons_vertices]
     y = [i[1] for i in polygons_vertices]
-    sim_x = abs(min(x))+abs(max(x))
-    sim_y = abs(min(y))+abs(max(y))
-    return polygons_vertices, sim_x, sim_y
+    sim_x = abs(abs(min(x))-abs(max(x)))
+    sim_y = abs(abs(min(y))-abs(max(y)))
+    center_x = (min(x)+max(x))/2
+    center_y = (min(y)+max(y))/2
+    return polygons_vertices, sim_x, sim_y, center_x, center_y
 
 
 def get_polygons(c, layer, dbu=0.001):
