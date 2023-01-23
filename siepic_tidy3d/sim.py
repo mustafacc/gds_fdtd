@@ -56,31 +56,36 @@ def make_structures(polygons_device, devrec, thick_dev, thick_sub, thick_super, 
     return structures
 
 
-def make_source(port, width=3, depth=2, thick_dev=0.22, freq0=2e14, fwidth=1e13, buffer=0.25):
+def make_source(port, width=3, depth=2, thick_dev=0.22, freq0=2e14, num_freqs=5, fwidth=1e13, buffer=0.25):
     import tidy3d as td
     if port['direction'] == 0:
         x_buffer = -buffer
         y_buffer = 0
+        size = [0, width, depth]
     elif port['direction'] == 180:
         x_buffer = buffer
         y_buffer = 0
+        size = [0, width, depth]
     elif port['direction'] == 90:
         x_buffer = 0
         y_buffer = -buffer
+        size = [width, 0, depth]
     elif port['direction'] == 270:
         x_buffer = 0
         y_buffer = buffer
+        size = [width, 0, depth]
     if port['direction'] in [180, 270]:
         direction = "+"
     else:
         direction = "-"
     msource = td.ModeSource(
         center=[port['x']+x_buffer, port['y']+y_buffer, thick_dev/2],
-        size=[0, width, depth],
+        size=size,
         direction=direction,
         source_time=td.GaussianPulse(freq0=freq0, fwidth=fwidth),
         mode_spec=td.ModeSpec(),
         mode_index=0,
+        num_freqs=num_freqs,
     )
     return msource
 
@@ -93,20 +98,24 @@ def make_monitors(ports, thick_dev=0.22, freqs=2e14, buffer=0.5):
         if ports[p]['direction'] == 0:
             x_buffer = -buffer
             y_buffer = 0
+            size = [0, ports[p]['width']*5, thick_dev*10]
         elif ports[p]['direction'] == 180:
             x_buffer = buffer
             y_buffer = 0
+            size = [0, ports[p]['width']*5, thick_dev*10]
         elif ports[p]['direction'] == 90:
             x_buffer = 0
             y_buffer = -buffer
+            size = [ports[p]['width']*5, 0, thick_dev*10]
         elif ports[p]['direction'] == 270:
             x_buffer = 0
             y_buffer = buffer
+            size = [ports[p]['width']*5, 0, thick_dev*10]
         # mode monitors
         monitors.append(td.ModeMonitor(
             center=[ports[p]['x']+x_buffer, ports[p]
                     ['y']+y_buffer, thick_dev/2],
-            size=[0, ports[p]['width']*5, thick_dev*10],
+            size=size,
             freqs=freqs,
             mode_spec=td.ModeSpec(),
             name=ports[p]['name'],
@@ -135,7 +144,7 @@ def make_sim(cell, ly, layer_device, layer_devrec, layer_pinrec, in_port='opt1',
              mat_super=td.Medium(permittivity=1.48**2),
              wavl_min=1.5, wavl_max=1.6, wavl_pts=11, grid_cells_per_wvl=16,
              boundary=td.BoundarySpec.all_sides(boundary=td.PML()), z_span=4,
-             visualize=False
+             symmetry=(0, 0, 1), num_freqs=5, visualize=False
              ):
     import tidy3d as td
     import numpy as np
@@ -146,9 +155,9 @@ def make_sim(cell, ly, layer_device, layer_devrec, layer_pinrec, in_port='opt1',
     lda_bw = (wavl_max-wavl_min)
     freq0 = td.C_0/lda0
     freqs = td.C_0/np.linspace(wavl_min, wavl_max, wavl_pts)
-    fwidth = 0.5*td.C_0*lda_bw/(lda0**2)# 0.5*freq0
+    fwidth = 0.5*td.C_0*lda_bw/(lda0**2)  # 0.5*freq0
 
-    polygons_device = extend.get_polygons(cell, layer_device, ly.dbu)
+    polygons_device = extend.get_polygons(cell, layer_device, layer_pinrec, ly.dbu)
     devrec, sim_x, sim_y, center_x, center_y = extend.get_devrec(
         cell, layer_devrec, ly.dbu)
     ports = extend.get_ports(cell, layer_pinrec, ly.dbu)
@@ -159,14 +168,14 @@ def make_sim(cell, ly, layer_device, layer_devrec, layer_pinrec, in_port='opt1',
     # define source on a given port
     input_port = find_port(ports, in_port)
     source = make_source(
-        ports[input_port], thick_dev=thick_dev, freq0=freq0, fwidth=fwidth)
+        ports[input_port], thick_dev=thick_dev, freq0=freq0, num_freqs=num_freqs, fwidth=fwidth)
     # define monitors|
     monitors = make_monitors(ports, thick_dev, freqs=freqs)
 
     # simulation domain size (in microns)
     sim_size = [sim_x, sim_y, z_span]
 
-    run_time = 8*max(sim_size)/td.C_0  # 85/fwidth  # sim. time in secs
+    run_time = 10*max(sim_size)/td.C_0  # 85/fwidth  # sim. time in secs
 
     # initialize the simulation
     simulation = td.Simulation(
@@ -177,7 +186,8 @@ def make_sim(cell, ly, layer_device, layer_devrec, layer_pinrec, in_port='opt1',
         monitors=monitors,
         run_time=run_time,
         boundary_spec=boundary,
-        center=(center_x, center_y, 0),
+        center=(center_x, center_y, thick_dev/2),
+        symmetry=symmetry,
     )
 
     if visualize:

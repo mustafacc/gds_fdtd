@@ -12,7 +12,7 @@ from tidy3d import web
 import numpy as np
 import matplotlib.pyplot as plt
 
-fname = 'ebeam_y_adiabatic'
+fname = 'crossing'
 
 # import gds and define layers
 cell, ly = sim.load_gds(fname)
@@ -20,7 +20,6 @@ cell, ly = sim.load_gds(fname)
 layer_device = ly.layer(1, 0)  # layer to define device's objects
 layer_pinrec = ly.layer(69, 0)  # layer to define device's ports
 layer_devrec = ly.layer(68, 0)  # layer to define device's boundaries
-
 
 # %% extract the gds cell parameters for simulation and setup simulation
 # define geometry

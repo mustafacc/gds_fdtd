@@ -132,7 +132,7 @@ def get_devrec(c, layer, dbu=0.001):
     return polygons_vertices, sim_x, sim_y, center_x, center_y
 
 
-def get_polygons(c, layer, dbu=0.001):
+def get_polygons(c, layer, layer_pinrec, dbu=0.001):
     """
     Extract polygons from a given cell on a given layer.
 
@@ -151,7 +151,46 @@ def get_polygons(c, layer, dbu=0.001):
         list of polygons from the cell.
 
     """
+    def make_port_extension(c, layer, ports, dbu=0.001):
+        import klayout.db as pya
+        from . import geometry
+        ext_out = 1 # extended structure beyond port
+        ext_in = 0.25
+        # create boxes at each port
+        for p in ports:
+            if ports[p]['direction'] == 0:
+                p1 = pya.Point(geometry.to_dbu(
+                    ports[p]['x']-ext_in, dbu), geometry.to_dbu(ports[p]['y'], dbu))
+                p2 = pya.Point(geometry.to_dbu(
+                    ports[p]['x']+ext_out, dbu), geometry.to_dbu(ports[p]['y'], dbu))
+            elif ports[p]['direction'] == 180:
+                p1 = pya.Point(geometry.to_dbu(
+                    ports[p]['x']+ext_in, dbu), geometry.to_dbu(ports[p]['y'], dbu))
+                p2 = pya.Point(geometry.to_dbu(
+                    ports[p]['x']-ext_out, dbu), geometry.to_dbu(ports[p]['y'], dbu))
+            elif ports[p]['direction'] == 90:
+                p1 = pya.Point(geometry.to_dbu(
+                    ports[p]['x'], dbu), geometry.to_dbu(ports[p]['y']-ext_in, dbu))
+                p2 = pya.Point(geometry.to_dbu(ports[p]['x'], dbu), geometry.to_dbu(
+                    ports[p]['y']+ext_out, dbu))
+            elif ports[p]['direction'] == 270:
+                p1 = pya.Point(geometry.to_dbu(
+                    ports[p]['x'], dbu), geometry.to_dbu(ports[p]['y']+ext_in, dbu))
+                p2 = pya.Point(geometry.to_dbu(ports[p]['x'], dbu), geometry.to_dbu(
+                    ports[p]['y']-ext_out, dbu))
+            pin = pya.Path([p1, p2], geometry.to_dbu(ports[p]['width'], dbu))
+            c.shapes(layer).insert(pin)
+        mergeReg = pya.Region(c.begin_shapes_rec(layer))
+        mergeReg.merge()
+        c.clear(layer)
+        c.shapes(layer).insert(mergeReg)
+        return
+
     import klayout.db as pya
+    # create additional material to extend beyond device bounds (needed for convergance)
+    ports = get_ports(c, layer_pinrec, dbu)
+    make_port_extension(c, layer, ports, dbu)
+
     r = pya.Region()
     s = c.begin_shapes_rec(layer)
     while not(s.at_end()):
@@ -163,4 +202,5 @@ def get_polygons(c, layer, dbu=0.001):
     polygons = [p for p in r.each_merged()]
     polygons_vertices = [[[vertex.x*dbu, vertex.y*dbu] for vertex in p.each_point()]
                          for p in [p.to_simple_polygon() for p in polygons]]
+
     return polygons_vertices
