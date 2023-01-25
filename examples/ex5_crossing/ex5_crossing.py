@@ -17,8 +17,9 @@ fname = 'crossing'
 # import gds and define layers
 cell, ly = sim.load_gds(fname)
 
+# layout and layers based on the EBeam PDK: https://github.com/SiEPIC/SiEPIC_EBeam_PDK
 layer_device = ly.layer(1, 0)  # layer to define device's objects
-layer_pinrec = ly.layer(69, 0)  # layer to define device's ports
+layer_pinrec = ly.layer(1, 10)  # layer to define device's ports
 layer_devrec = ly.layer(68, 0)  # layer to define device's boundaries
 
 # %% extract the gds cell parameters for simulation and setup simulation
