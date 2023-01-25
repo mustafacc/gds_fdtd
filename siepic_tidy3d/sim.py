@@ -90,7 +90,7 @@ def make_source(port, width=3, depth=2, thick_dev=0.22, freq0=2e14, num_freqs=5,
     return msource
 
 
-def make_monitors(ports, thick_dev=0.22, freqs=2e14, buffer=0.5):
+def make_monitors(ports, thick_dev=0.22, freqs=2e14, buffer=0.5, port_scale=5, z_span=4):
     """Create monitors for a given list of ports."""
     import tidy3d as td
     monitors = []
@@ -98,19 +98,19 @@ def make_monitors(ports, thick_dev=0.22, freqs=2e14, buffer=0.5):
         if ports[p]['direction'] == 0:
             x_buffer = -buffer
             y_buffer = 0
-            size = [0, ports[p]['width']*5, thick_dev*10]
+            size = [0, ports[p]['width']*port_scale, z_span]
         elif ports[p]['direction'] == 180:
             x_buffer = buffer
             y_buffer = 0
-            size = [0, ports[p]['width']*5, thick_dev*10]
+            size = [0, ports[p]['width']*port_scale, z_span]
         elif ports[p]['direction'] == 90:
             x_buffer = 0
             y_buffer = -buffer
-            size = [ports[p]['width']*5, 0, thick_dev*10]
+            size = [ports[p]['width']*port_scale, 0, z_span]
         elif ports[p]['direction'] == 270:
             x_buffer = 0
             y_buffer = buffer
-            size = [ports[p]['width']*5, 0, thick_dev*10]
+            size = [ports[p]['width']*port_scale, 0, z_span]
         # mode monitors
         monitors.append(td.ModeMonitor(
             center=[ports[p]['x']+x_buffer, ports[p]
@@ -142,10 +142,10 @@ def make_sim(cell, ly, layer_device, layer_devrec, layer_pinrec, in_port='opt1',
              mat_dev=td.material_library["cSi"]["Li1993_293K"],
              mat_sub=td.Medium(permittivity=1.48**2),
              mat_super=td.Medium(permittivity=1.48**2),
-             wavl_min=1.5, wavl_max=1.6, wavl_pts=11, grid_cells_per_wvl=16,
+             wavl_min=1.5, wavl_max=1.6, wavl_pts=11, grid_cells_per_wvl=15,
              boundary=td.BoundarySpec.all_sides(boundary=td.PML()), z_span=4,
-             symmetry=(0, 0, 1), num_freqs=5, visualize=False
-             ):
+             symmetry=(0, 0, 1), num_freqs=3, visualize=False,
+             run_time_factor=50):
     import tidy3d as td
     import numpy as np
     import matplotlib.pyplot as plt
@@ -155,9 +155,10 @@ def make_sim(cell, ly, layer_device, layer_devrec, layer_pinrec, in_port='opt1',
     lda_bw = (wavl_max-wavl_min)
     freq0 = td.C_0/lda0
     freqs = td.C_0/np.linspace(wavl_min, wavl_max, wavl_pts)
-    fwidth = 0.5*td.C_0*lda_bw/(lda0**2)  # 0.5*freq0
+    fwidth = td.C_0*lda_bw/(lda0**2)  # 0.5*freq0
 
-    polygons_device = extend.get_polygons(cell, layer_device, layer_pinrec, ly.dbu)
+    polygons_device = extend.get_polygons(
+        cell, layer_device, layer_pinrec, ly.dbu)
     devrec, sim_x, sim_y, center_x, center_y = extend.get_devrec(
         cell, layer_devrec, ly.dbu)
     ports = extend.get_ports(cell, layer_pinrec, ly.dbu)
@@ -168,14 +169,14 @@ def make_sim(cell, ly, layer_device, layer_devrec, layer_pinrec, in_port='opt1',
     # define source on a given port
     input_port = find_port(ports, in_port)
     source = make_source(
-        ports[input_port], thick_dev=thick_dev, freq0=freq0, num_freqs=num_freqs, fwidth=fwidth)
+        ports[input_port], depth=z_span, thick_dev=thick_dev, freq0=freq0, num_freqs=num_freqs, fwidth=fwidth)
     # define monitors|
-    monitors = make_monitors(ports, thick_dev, freqs=freqs)
+    monitors = make_monitors(ports, thick_dev, z_span=z_span, freqs=freqs)
 
     # simulation domain size (in microns)
     sim_size = [sim_x, sim_y, z_span]
 
-    run_time = 10*max(sim_size)/td.C_0  # 85/fwidth  # sim. time in secs
+    run_time = run_time_factor*max(sim_size)/td.C_0  # 85/fwidth  # sim. time in secs
 
     # initialize the simulation
     simulation = td.Simulation(
@@ -206,7 +207,7 @@ def make_sim(cell, ly, layer_device, layer_devrec, layer_pinrec, in_port='opt1',
     return simulation
 
 
-def visualize_results(sim_data, cell, ly, layer_pinrec, in_port):
+def visualize_results(sim_data, cell, ly, layer_pinrec, in_port, wavl_offset=0):
     import matplotlib.pyplot as plt
     import numpy as np
     import tidy3d as td
@@ -234,6 +235,9 @@ def visualize_results(sim_data, cell, ly, layer_pinrec, in_port):
         directions = ['+', ]*num_ports
         directions[in_port-1] = '-'
         return tuple(directions)
+
+    def get_port_name(port):
+        return [int(i) for i in port if i.isdigit()][0]
 
     def measure_transmission(sim_data, ports, num_ports):
         """Constructs a "row" of the scattering matrix when sourced from top left port"""
@@ -268,12 +272,12 @@ def visualize_results(sim_data, cell, ly, layer_pinrec, in_port):
     for amp, monitor in zip(amps_arms, sim_data.simulation.monitors[:-1]):
         print(f'\tmonitor     = "{monitor.name}"')
         plt.plot(wavl, [10*np.log10(abs(i)**2)
-                 for i in amp], label=f"S{1}{monitor.name}")
+                 for i in amp], label=f"S{get_port_name(in_port)}{get_port_name(monitor.name)}")
         print(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
         print(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
     fig.legend()
 
     fig, ax = plt.subplots(1, 1, figsize=(16, 3))
     sim_data.plot_field("field", "Ey", z=get_field_monitor_z(sim_data),
-                        freq=td.C_0/((wavl_max+wavl_min)/2), ax=ax)
+                        freq=td.C_0/((wavl_max+wavl_min+wavl_offset)/2), ax=ax)
     plt.show()

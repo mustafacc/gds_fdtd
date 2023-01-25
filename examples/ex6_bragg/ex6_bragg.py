@@ -12,13 +12,13 @@ from tidy3d import web
 import numpy as np
 import matplotlib.pyplot as plt
 
-fname = 'crossing'
+fname = 'bragg'
 
 # import gds and define layers
 cell, ly = sim.load_gds(fname)
 
 layer_device = ly.layer(1, 0)  # layer to define device's objects
-layer_pinrec = ly.layer(69, 0)  # layer to define device's ports
+layer_pinrec = ly.layer(1, 10)  # layer to define device's ports
 layer_devrec = ly.layer(68, 0)  # layer to define device's boundaries
 
 # %% extract the gds cell parameters for simulation and setup simulation
@@ -31,9 +31,9 @@ z_span = 4  # simulation z-span
 
 # frequency and bandwidth of pulsed excitation
 in_port = 'opt1'  # input port
-wavl_min = 1.45  # simulation wavelength start (microns)
-wavl_max = 1.65  # simulation wavelength end (microns)
-wavl_pts = 101
+wavl_min = 1.51  # simulation wavelength start (microns)
+wavl_max = 1.59  # simulation wavelength end (microns)
+wavl_pts = 201
 
 # define materials structures
 mat_dev = td.material_library["cSi"]["Li1993_293K"]
@@ -59,5 +59,4 @@ job = web.Job(simulation=simulation, task_name=fname)
 sim_data = job.run(path=f"{fname}/sim_data.hdf5")
 
 # %%
-
 sim.visualize_results(sim_data, cell, ly, layer_pinrec, in_port)

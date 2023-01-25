@@ -180,10 +180,10 @@ def get_polygons(c, layer, layer_pinrec, dbu=0.001):
                     ports[p]['y']-ext_out, dbu))
             pin = pya.Path([p1, p2], geometry.to_dbu(ports[p]['width'], dbu))
             c.shapes(layer).insert(pin)
-        mergeReg = pya.Region(c.begin_shapes_rec(layer))
-        mergeReg.merge()
-        c.clear(layer)
-        c.shapes(layer).insert(mergeReg)
+        #mergeReg = pya.Region(c.begin_shapes_rec(layer))
+        #mergeReg.merge()
+        #c.clear(layer)
+        #c.shapes(layer).insert(mergeReg)
         return
 
     import klayout.db as pya
