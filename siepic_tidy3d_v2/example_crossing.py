@@ -6,7 +6,7 @@ Created on Mon Feb 20 12:19:10 2023
 @author: mustafah
 """
 import tidy3d as td
-import siepic_tidy3d_v2 as sitd
+import siepic_tidy3d as sitd
 
 fname_gds = 'crossing.gds'
 
@@ -26,17 +26,21 @@ mat_super = td.Medium(permittivity=1.48**2)
 
 # frequency and bandwidth of pulsed excitation
 in_port = 'opt1'  # input port
+in_pol = 'TE'  # input polarization state (options are TE, TM, TETM)
 wavl_min = 1.45  # simulation wavelength start (microns)
 wavl_max = 1.65  # simulation wavelength end (microns)
 wavl_pts = 101
 
+# define symmetry across Z axis (TE mode) - set to -1 for anti symmetric
+symmetry = (0, 0, 1)
+
 # %% load and process the layout file
-layout = sitd.load_layout(fname_gds)
+layout = sitd.lyprocessor.load_layout(fname_gds)
 
 # load all the ports in the device and (optional) initialize each to have a center
 ports = sitd.lyprocessor.load_ports(
-    layout, layer=[69, 0], z_center=thickness_si/2)
-
+    layout, layer=[1, 10], z_center=thickness_si/2)
+#%%
 # load the device simulation region
 bounds = sitd.lyprocessor.load_region(
     layout, layer=[68, 0], z_center=thickness_si/2, z_span=z_span)
@@ -57,6 +61,19 @@ device_sub = sitd.lyprocessor.load_structure_from_bounds(
 device = sitd.geometry.component(name=layout.name, structures=[
                                  device_si, device_sub, device_super], ports=ports, bounds=bounds)
 
-# %% build the simulation
+# %% build the simulation object
+simulation = sitd.sim.make_sim(
+    device=device, symmetry=symmetry)
 
-simulation = sitd.sim.make_sim(device=device, wavl)
+# %% create a wavelength sweep simulation with single port excitation
+simulation.wavl_sweep(wavl_min=wavl_min, wavl_max=wavl_max,
+                      wavl_pts=wavl_pts, in_port=in_port, in_pol=in_pol)
+simulation.wavl_sweep.visualize()
+
+# %% send the simulation job to the cluser
+simulation.wavl_sweep.upload()
+# visualizing the simulation job in the tidy3d web UI is probably a good idea!
+# %% execute the simulation
+simulation.wavl_sweep.run()
+# %% visualize the simulation results
+simulation.wavl_sweep.visualize_rslts()
