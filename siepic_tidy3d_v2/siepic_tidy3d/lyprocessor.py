@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 SiEPIC-Tidy3D integration toolbox.
 
@@ -13,7 +11,10 @@ class layout:
         self.name = name
         self.ly = ly
         self.cell = cell
-        return
+
+    @property
+    def dbu(self):
+        return self.ly.dbu
 
 
 class port:
@@ -23,12 +24,47 @@ class port:
         self.width = width
         self.height = height
         self.direction = direction
-        return
 
 
 class structure:
-    def __init__(self, name, polygon, thickness, z_base, material, sidewall_angle=90):
-        return
+    def __init__(self, name, polygon, z_base, z_span, material, sidewall_angle=90):
+        self.name = name
+        self.polygon = polygon
+        self.z_base = z_base
+        self.z_span = z_span
+        self.material = material
+        self.sidewall_angle = sidewall_angle
+
+
+class region:
+    def __init__(self, vertices, z_center, z_span):
+        self.vertices = vertices
+        self.z_center = z_center
+        self.z_span = z_span
+
+    @property
+    def x(self):
+        return [i[0] for i in self.vertices]
+
+    @property
+    def y(self):
+        return [i[1] for i in self.vertices]
+
+    @property
+    def x_span(self):
+        return abs(min(self.x) - max(self.x))
+
+    @property
+    def y_sapn(self):
+        return abs(min(self.y) - max(self.y))
+
+    @property
+    def x_center(self):
+        return (min(self.x) + max(self.x)) / 2
+
+    @property
+    def y_center(self):
+        return (min(self.y) + max(self.y)) / 2
 
 
 class component:
@@ -38,24 +74,116 @@ class component:
 
 def load_layout(fname):
     import klayout.db as pya
+
     ly = pya.Layout()
     ly.read(fname)
     if ly.cells() > 1:
-        ValueError(
-            'More than one top cell found, ensure only 1 top cell exists.')
+        ValueError("More than one top cell found, ensure only 1 top cell exists.")
     else:
         cell = ly.top_cell()
         name = cell.name
     return layout(name, ly, cell)
 
 
-def load_ports(layout, layer=[1, 10], z_center=0):
+def load_region(layout, layer=[68, 0], z_center=0, z_span=5):
+    """
+    Get device bounds.
+
+    Parameters
+    ----------
+    layout : SiEPIC Tidy3d layout type
+        layout to extract the polygons from.
+    layer : klayout.db (pya) layout.layer() type
+        Layer to place detect the devrec object from.
+
+    Returns
+    -------
+    region : region object type
+    """
+
+    def get_kdb_layer(layer):
+        return layout.ly.layer(layer[0], layer[1])
+
     import klayout.db as pya
+
+    c = layout.cell
+    dbu = layout.dbu
+    layer = get_kdb_layer(layer)
+    iter1 = c.begin_shapes_rec(layer)
+    # DevRec must be either a Box or a Polygon:
+    if iter1.shape().is_box():
+        box = iter1.shape().box.transformed(iter1.itrans())
+        polygon = pya.Polygon(box)  # Save the component outline polygon
+        DevRec_polygon = pya.Polygon(iter1.shape().box)
+    if iter1.shape().is_polygon():
+        polygon = iter1.shape().polygon.transformed(
+            iter1.itrans()
+        )  # Save the component outline polygon
+        DevRec_polygon = iter1.shape().polygon
+    polygons_vertices = [
+        [[vertex.x * dbu, vertex.y * dbu] for vertex in p.each_point()]
+        for p in [p.to_simple_polygon() for p in [DevRec_polygon]]
+    ][0]
+ 
+    return region(vertices=polygons_vertices, z_center=z_center, z_span=z_span)
+
+def load_structure(layout, name, layer, z_base, z_span, material, sidewall_angle=90):
+    """
+    Extract polygons from a given cell on a given layer.
+
+    Parameters
+    ----------
+    cell : klayout.db (pya) Cell type
+        Cell to extract the polygons from.
+    layer : klayout.db (pya) layout.layer() type
+        Layer to place the pin object into.
+    dbu : Float, optional
+        Layout's database unit (in microns). The default is 0.001 (1 nm)
+
+    Returns
+    -------
+    polygons_vertices : list [lists[x,y]]
+        list of polygons from the cell.
+
+    """
+
+    def get_kdb_layer(layer):
+        return layout.ly.layer(layer[0], layer[1])
+
+    import klayout.db as pya
+
+    c = layout.cell
+    dbu = layout.dbu
+    layer = get_kdb_layer(layer)
+
+    r = pya.Region()
+    s = c.begin_shapes_rec(layer)
+    while not(s.at_end()):
+        if s.shape().is_polygon() or s.shape().is_box() or s.shape().is_path():
+            r.insert(s.shape().polygon.transformed(s.itrans()))
+        s.next()
+
+    r.merge()
+    polygons = [p for p in r.each_merged()]
+    polygons_vertices = [[[vertex.x*dbu, vertex.y*dbu] for vertex in p.each_point()]
+                         for p in [p.to_simple_polygon() for p in polygons]]
+    structures = []
+    for idx, s in enumerate(polygons_vertices):
+        name = f'{name}_{idx}'
+        structures.append(structure(name=name, polygon=s, z_base=z_base, z_span=z_span, material=material, sidewall_angle=sidewall_angle))
+    return structures
+
+
+def load_ports(layout, layer=[1, 10], z_center=0, z_span=0.22):
+    import klayout.db as pya
+
+    def get_kdb_layer(layer):
+        return layout.ly.layer(layer[0], layer[1])
 
     def get_direction(path):
         """Determine orientation of a pin path."""
         if path.points > 2:
-            return ValueError('Number of points in a pin path are > 2.')
+            return ValueError("Number of points in a pin path are > 2.")
         p = path.each_point()
         p1 = p.__next__()
         p2 = p.__next__()
@@ -77,32 +205,39 @@ def load_ports(layout, layer=[1, 10], z_center=0):
         p2 = p.__next__()
         direction = get_direction(path)
         if direction in [0, 180]:
-            x = dbu*(p1.x + p2.x)/2
-            y = dbu*p1.y
+            x = dbu * (p1.x + p2.x) / 2
+            y = dbu * p1.y
         elif direction in [90, 270]:
-            x = dbu*p1.x
-            y = dbu*(p1.y + p2.y)/2
+            x = dbu * p1.x
+            y = dbu * (p1.y + p2.y) / 2
         return x, y
 
     def get_name(c, x, y, dbu):
-        s = c.begin_shapes_rec(layer)
-        while not(s.at_end()):
+        s = c.begin_shapes_rec(get_kdb_layer(layer))
+        while not (s.at_end()):
             if s.shape().is_text():
-                label_x = s.shape().text.x*dbu
-                label_y = s.shape().text.y*dbu
+                label_x = s.shape().text.x * dbu
+                label_y = s.shape().text.y * dbu
                 if label_x == x and label_y == y:
                     return s.shape().text.string
             s.next()
 
     ports = []
-    s = layout.cell.begin_shapes_rec(layout.ly.layer(layer[0], layer[1]))
-    while not(s.at_end()):
+    s = layout.cell.begin_shapes_rec(get_kdb_layer(layer))
+    while not (s.at_end()):
         if s.shape().is_path():
-            
             width = s.shape().path_dwidth
             direction = get_direction(s.shape().path)
-            center = get_center(s.shape().path, layout.ly.dbu)+[z_center]
-            name = get_name(layout.cell, p.center, layout.ly.dbu)
-            p = port(name=name, center=center, width=width, height=)
+            center = list(get_center(s.shape().path, layout.ly.dbu)) + [z_center]
+            name = get_name(layout.cell, center[0], center[1], layout.ly.dbu)
+            ports.append(
+                port(
+                    name=name,
+                    center=center,
+                    width=width,
+                    height=z_span,
+                    direction=direction,
+                )
+            )
         s.next()
     return ports
