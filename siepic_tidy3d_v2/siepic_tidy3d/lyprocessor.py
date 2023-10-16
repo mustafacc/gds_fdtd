@@ -5,71 +5,7 @@ Layout processing module.
 @author: Mustafa Hammood, 2023
 """
 
-
-class layout:
-    def __init__(self, name, ly, cell):
-        self.name = name
-        self.ly = ly
-        self.cell = cell
-
-    @property
-    def dbu(self):
-        return self.ly.dbu
-
-
-class port:
-    def __init__(self, name, center, width, height, direction):
-        self.name = name
-        self.center = center
-        self.width = width
-        self.height = height
-        self.direction = direction
-
-
-class structure:
-    def __init__(self, name, polygon, z_base, z_span, material, sidewall_angle=90):
-        self.name = name
-        self.polygon = polygon
-        self.z_base = z_base
-        self.z_span = z_span
-        self.material = material
-        self.sidewall_angle = sidewall_angle
-
-
-class region:
-    def __init__(self, vertices, z_center, z_span):
-        self.vertices = vertices
-        self.z_center = z_center
-        self.z_span = z_span
-
-    @property
-    def x(self):
-        return [i[0] for i in self.vertices]
-
-    @property
-    def y(self):
-        return [i[1] for i in self.vertices]
-
-    @property
-    def x_span(self):
-        return abs(min(self.x) - max(self.x))
-
-    @property
-    def y_sapn(self):
-        return abs(min(self.y) - max(self.y))
-
-    @property
-    def x_center(self):
-        return (min(self.x) + max(self.x)) / 2
-
-    @property
-    def y_center(self):
-        return (min(self.y) + max(self.y)) / 2
-
-
-class component:
-    def __init__(self, name, structures, ports):
-        return
+from .core import layout, port, structure, region, component
 
 
 def load_layout(fname):
@@ -124,8 +60,9 @@ def load_region(layout, layer=[68, 0], z_center=0, z_span=5):
         [[vertex.x * dbu, vertex.y * dbu] for vertex in p.each_point()]
         for p in [p.to_simple_polygon() for p in [DevRec_polygon]]
     ][0]
- 
+
     return region(vertices=polygons_vertices, z_center=z_center, z_span=z_span)
+
 
 def load_structure(layout, name, layer, z_base, z_span, material, sidewall_angle=90):
     """
@@ -158,20 +95,42 @@ def load_structure(layout, name, layer, z_base, z_span, material, sidewall_angle
 
     r = pya.Region()
     s = c.begin_shapes_rec(layer)
-    while not(s.at_end()):
+    while not (s.at_end()):
         if s.shape().is_polygon() or s.shape().is_box() or s.shape().is_path():
             r.insert(s.shape().polygon.transformed(s.itrans()))
         s.next()
 
     r.merge()
     polygons = [p for p in r.each_merged()]
-    polygons_vertices = [[[vertex.x*dbu, vertex.y*dbu] for vertex in p.each_point()]
-                         for p in [p.to_simple_polygon() for p in polygons]]
+    polygons_vertices = [
+        [[vertex.x * dbu, vertex.y * dbu] for vertex in p.each_point()]
+        for p in [p.to_simple_polygon() for p in polygons]
+    ]
     structures = []
     for idx, s in enumerate(polygons_vertices):
-        name = f'{name}_{idx}'
-        structures.append(structure(name=name, polygon=s, z_base=z_base, z_span=z_span, material=material, sidewall_angle=sidewall_angle))
+        name = f"{name}_{idx}"
+        structures.append(
+            structure(
+                name=name,
+                polygon=s,
+                z_base=z_base,
+                z_span=z_span,
+                material=material,
+                sidewall_angle=sidewall_angle,
+            )
+        )
     return structures
+
+
+def load_structure_from_bounds(bounds, name, z_base, z_span, material, extension=1):
+    # TODO: incorporate extension to grow polygon vertices
+    return structure(
+        name=name,
+        polygon=bounds.vertices,
+        z_base=z_base,
+        z_span=z_span,
+        material=material,
+    )
 
 
 def load_ports(layout, layer=[1, 10], z_center=0, z_span=0.22):

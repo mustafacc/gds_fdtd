@@ -55,26 +55,23 @@ device_si = sitd.lyprocessor.load_structure(
 # make the superstrate and substrate based on device bounds
 # this information isn't typically captured in a 2D layer stack
 device_super = sitd.lyprocessor.load_structure_from_bounds(
-    bounds, name="Superstrate", thickness=thickness_super, z_base=0, material=mat_super
+    bounds, name="Superstrate", z_base=0, z_span=thickness_super, material=mat_super
 )
 
-# %%
-
-
 device_sub = sitd.lyprocessor.load_structure_from_bounds(
-    bounds, name="Substrate", thickness=-thickness_sub, z_base=0, material=mat_sub
+    bounds, name="Substrate", z_base=0, z_span=-thickness_sub, material=mat_sub
 )
 
 # create the device by loading the structures
-device = sitd.geometry.component(
+device = sitd.core.component(
     name=layout.name,
     structures=[device_si, device_sub, device_super],
-    ports=ports,
+    ports=ports_si,
     bounds=bounds,
 )
 
-# %% build the simulation object
-simulation = sitd.sim.make_sim(device=device, symmetry=symmetry)
+#%%
+simulation = sitd.simprocessor.make_sim(device=device)
 
 # %% create a wavelength sweep simulation with single port excitation
 simulation.wavl_sweep(
