@@ -122,11 +122,22 @@ def load_structure(layout, name, layer, z_base, z_span, material, sidewall_angle
     return structures
 
 
-def load_structure_from_bounds(bounds, name, z_base, z_span, material, extension=1):
-    # TODO: incorporate extension to grow polygon vertices
+def load_structure_from_bounds(bounds, name, z_base, z_span, material, extension=0):
+    # Create a new list to store the modified points
+    # Calculate the center of the box_pts
+    center = [sum(x[0] for x in bounds.vertices) / len(bounds.vertices), sum(x[1] for x in bounds.vertices) / len(bounds.vertices)]
+    # Create a new list to store the modified points
+    expanded_pts = []
+    # Iterate through the original points and expand them by the buffer
+    for point in bounds.vertices:
+        dx = point[0] - center[0]
+        dy = point[1] - center[1]
+        expanded_point = [center[0] + dx * (1 + extension), center[1] + dy * (1 + extension)]
+        expanded_pts.append(expanded_point)
+
     return structure(
         name=name,
-        polygon=bounds.vertices,
+        polygon=expanded_pts,
         z_base=z_base,
         z_span=z_span,
         material=material,

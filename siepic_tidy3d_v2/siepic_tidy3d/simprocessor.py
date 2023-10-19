@@ -8,7 +8,7 @@ import tidy3d as td
 
 
 def make_source(
-    port, width=3, depth=2, freq0=2e14, num_freqs=5, fwidth=1e13, buffer=0.25
+    port, width=3, depth=2, freq0=2e14, num_freqs=5, fwidth=1e13, buffer=0.1
 ):
     import tidy3d as td
 
@@ -44,19 +44,67 @@ def make_source(
     return msource
 
 
-def make_structures(device):
+def make_structures(device, buffer = 1):
     import tidy3d as td
     import numpy as np
 
     structures = []
-    for s in device.structures[0]:
+    for s in device.structures:
+        if type(s) == list:
+            s = s[0]
+        if s.z_span<0:
+            bounds = (s.z_span, s.z_base)
+        else:
+            bounds = (s.z_base, s.z_span)
         structures.append(
             td.Structure(
                 geometry=td.PolySlab(
                     vertices=s.polygon,
-                    slab_bounds=(s.z_base, s.z_span),
+                    slab_bounds=bounds,
                     axis=2,
                     sidewall_angle=(90 - s.sidewall_angle) * (np.pi / 180),
+                ),
+                medium=s.material,
+            )
+        )
+
+    # extend ports beyond sim region
+    for p in device.ports:
+        if p.direction == 0:
+            pts = [
+                [p.center[0], p.center[1]+p.width/2],
+                [p.center[0]+buffer, p.center[1]+p.width/2],
+                [p.center[0]+buffer, p.center[1]-p.width/2],
+                [p.center[0], p.center[1]-p.width/2]
+                ]
+        elif p.direction == 180:
+            pts = [
+                [p.center[0], p.center[1]+p.width/2],
+                [p.center[0]-buffer, p.center[1]+p.width/2],
+                [p.center[0]-buffer, p.center[1]-p.width/2],
+                [p.center[0], p.center[1]-p.width/2]
+                ]
+        elif p.direction == 90:
+            pts = [
+                [p.center[0]-p.width/2, p.center[1]],
+                [p.center[0]-p.width/2, p.center[1]+buffer],
+                [p.center[0]+p.width/2, p.center[1]+buffer],
+                [p.center[0]+p.width/2, p.center[1]]
+                ]
+        elif p.direction == 270:
+            pts = [
+                [p.center[0]-p.width/2, p.center[1]],
+                [p.center[0]-p.width/2, p.center[1]-buffer],
+                [p.center[0]+p.width/2, p.center[1]-buffer],
+                [p.center[0]+p.width/2, p.center[1]]
+                ]
+        structures.append(
+            td.Structure(
+                geometry=td.PolySlab(
+                    vertices=pts,
+                    slab_bounds=(p.center[2]-p.height/2, p.center[2]+p.height/2),
+                    axis=2,
+                    sidewall_angle=(90 - device.structures[0].sidewall_angle) * (np.pi / 180),
                 ),
                 medium=s.material,
             )
@@ -64,7 +112,7 @@ def make_structures(device):
     return structures
 
 
-def make_port_monitor(port, freqs=2e14, buffer=0.5, port_scale=5, z_span=4):
+def make_port_monitor(port, freqs=2e14, buffer=0.15, port_scale=5, z_span=4):
     """Create monitors for a given list of ports."""
     import tidy3d as td
 

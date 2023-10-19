@@ -6,6 +6,7 @@ Created on Mon Feb 20 12:19:10 2023
 @author: mustafah
 """
 import tidy3d as td
+from tidy3d import web
 import siepic_tidy3d as sitd
 
 fname_gds = "crossing.gds"
@@ -65,13 +66,14 @@ device_sub = sitd.lyprocessor.load_structure_from_bounds(
 # create the device by loading the structures
 device = sitd.core.component(
     name=layout.name,
-    structures=[device_si, device_sub, device_super],
+    structures=[device_sub, device_super, device_si],
     ports=ports_si,
     bounds=bounds,
 )
 
 #%%
 simulation = sitd.simprocessor.make_sim(device=device)
+job = web.Job(simulation=simulation, task_name='test')
 
 # %% create a wavelength sweep simulation with single port excitation
 simulation.wavl_sweep(
