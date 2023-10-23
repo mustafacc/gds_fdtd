@@ -8,7 +8,7 @@ import tidy3d as td
 
 
 def make_source(
-    port, width=3, depth=2, freq0=2e14, num_freqs=5, fwidth=1e13, buffer=0.1
+    port, width=3, depth=2, freq0=2e14, num_freqs=5, fwidth=1e13, buffer=0.2
 ):
     import tidy3d as td
 
@@ -44,7 +44,7 @@ def make_source(
     return msource
 
 
-def make_structures(device, buffer = 1):
+def make_structures(device, buffer = 2):
     import tidy3d as td
     import numpy as np
 
@@ -112,26 +112,26 @@ def make_structures(device, buffer = 1):
     return structures
 
 
-def make_port_monitor(port, freqs=2e14, buffer=0.15, port_scale=5, z_span=4):
+def make_port_monitor(port, freqs=2e14, buffer=0.5, depth=2, width=3):
     """Create monitors for a given list of ports."""
     import tidy3d as td
 
     if port.direction == 0:
         x_buffer = -buffer
         y_buffer = 0
-        size = [0, port.width * port_scale, z_span]
+        size = [0, width, depth]
     elif port.direction == 180:
         x_buffer = buffer
         y_buffer = 0
-        size = [0, port.width * port_scale, z_span]
+        size = [0, width, depth]
     elif port.direction == 90:
         x_buffer = 0
         y_buffer = -buffer
-        size = [port.width * port_scale, 0, z_span]
+        size = [width, 0, depth]
     elif port.direction == 270:
         x_buffer = 0
         y_buffer = buffer
-        size = [port.width * port_scale, 0, z_span]
+        size = [width, 0, depth]
     # mode monitors
     monitors = td.ModeMonitor(
             center=[port.x + x_buffer, port.y + y_buffer, port.z],
@@ -150,6 +150,8 @@ def make_sim(
     wavl_min=1.45,
     wavl_max=1.65,
     wavl_pts=101,
+    width_ports=3,
+    depth_ports=2,
     symmetry=(0, 0, 0),
     num_freqs=5,
     in_port=None,
@@ -177,8 +179,8 @@ def make_sim(
     # define source on a given port
     source = make_source(
         device.ports[0],
-        depth=device.ports[0].height,
-        width=device.ports[0].width,
+        depth= depth_ports,
+        width= width_ports,
         freq0=freq0,
         num_freqs=num_freqs,
         fwidth=fwidth,
@@ -190,6 +192,8 @@ def make_sim(
         monitors.append(make_port_monitor(
             p,
             freqs=freqs,
+            depth= depth_ports,
+            width= width_ports,
         ))
 
     # simulation domain size (in microns)

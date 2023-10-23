@@ -48,7 +48,7 @@ bounds = sitd.lyprocessor.load_region(
     layout, layer=[68, 0], z_center=thickness_si / 2, z_span=z_span
 )
 
-# load the silicon structur#%%es in the device in layer (1,0)
+# load the silicon structures in the device in layer (1,0)
 device_si = sitd.lyprocessor.load_structure(
     layout, name="Si", layer=[1, 0], z_base=0, z_span=thickness_si, material=mat_si
 )
@@ -58,7 +58,6 @@ device_si = sitd.lyprocessor.load_structure(
 device_super = sitd.lyprocessor.load_structure_from_bounds(
     bounds, name="Superstrate", z_base=0, z_span=thickness_super, material=mat_super
 )
-
 device_sub = sitd.lyprocessor.load_structure_from_bounds(
     bounds, name="Substrate", z_base=0, z_span=-thickness_sub, material=mat_sub
 )
@@ -73,22 +72,7 @@ device = sitd.core.component(
 
 #%%
 simulation = sitd.simprocessor.make_sim(device=device)
+#%%
 job = web.Job(simulation=simulation, task_name='test')
 
-# %% create a wavelength sweep simulation with single port excitation
-simulation.wavl_sweep(
-    wavl_min=wavl_min,
-    wavl_max=wavl_max,
-    wavl_pts=wavl_pts,
-    in_port=in_port,
-    in_pol=in_pol,
-)
-simulation.wavl_sweep.visualize()
-
-# %% send the simulation job to the cluser
-simulation.wavl_sweep.upload()
-# visualizing the simulation job in the tidy3d web UI is probably a good idea!
-# %% execute the simulation
-simulation.wavl_sweep.run()
-# %% visualize the simulation results
-simulation.wavl_sweep.visualize_rslts()
+# %%

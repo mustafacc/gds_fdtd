@@ -8,6 +8,12 @@ Layout processing module.
 from .core import layout, port, structure, region, component
 
 
+
+def dilate(vertices, extension=1):
+    return [[x+extension if x > 0 else x-extension, 
+             y+extension if y > 0 else y-extension] for x, y in vertices]
+
+
 def load_layout(fname):
     import klayout.db as pya
 
@@ -21,7 +27,7 @@ def load_layout(fname):
     return layout(name, ly, cell)
 
 
-def load_region(layout, layer=[68, 0], z_center=0, z_span=5):
+def load_region(layout, layer=[68, 0], z_center=0, z_span=5, extension=-0.1):
     """
     Get device bounds.
 
@@ -61,6 +67,8 @@ def load_region(layout, layer=[68, 0], z_center=0, z_span=5):
         for p in [p.to_simple_polygon() for p in [DevRec_polygon]]
     ][0]
 
+    if extension != 0:
+        polygons_vertices = dilate(polygons_vertices, extension)
     return region(vertices=polygons_vertices, z_center=z_center, z_span=z_span)
 
 
@@ -121,23 +129,10 @@ def load_structure(layout, name, layer, z_base, z_span, material, sidewall_angle
         )
     return structures
 
-
-def load_structure_from_bounds(bounds, name, z_base, z_span, material, extension=0):
-    # Create a new list to store the modified points
-    # Calculate the center of the box_pts
-    center = [sum(x[0] for x in bounds.vertices) / len(bounds.vertices), sum(x[1] for x in bounds.vertices) / len(bounds.vertices)]
-    # Create a new list to store the modified points
-    expanded_pts = []
-    # Iterate through the original points and expand them by the buffer
-    for point in bounds.vertices:
-        dx = point[0] - center[0]
-        dy = point[1] - center[1]
-        expanded_point = [center[0] + dx * (1 + extension), center[1] + dy * (1 + extension)]
-        expanded_pts.append(expanded_point)
-
+def load_structure_from_bounds(bounds, name, z_base, z_span, material, extension=2):
     return structure(
         name=name,
-        polygon=expanded_pts,
+        polygon=dilate(bounds.vertices, extension=extension),
         z_base=z_base,
         z_span=z_span,
         material=material,
