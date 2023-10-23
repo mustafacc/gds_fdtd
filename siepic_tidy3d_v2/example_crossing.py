@@ -71,7 +71,7 @@ device = sitd.core.component(
 )
 
 #%%
-simulation = sitd.simprocessor.make_sim(device=device)
+simulation = sitd.simprocessor.make_sim(device=device, field_monitor=True)
 #%%
 job = web.Job(simulation=simulation, task_name='test')
 

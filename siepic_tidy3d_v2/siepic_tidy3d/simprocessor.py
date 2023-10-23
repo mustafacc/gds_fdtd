@@ -112,7 +112,7 @@ def make_structures(device, buffer = 2):
     return structures
 
 
-def make_port_monitor(port, freqs=2e14, buffer=0.5, depth=2, width=3):
+def make_port_monitor(port, freqs=2e14, buffer=0.3, depth=2, width=3):
     """Create monitors for a given list of ports."""
     import tidy3d as td
 
@@ -144,6 +144,22 @@ def make_port_monitor(port, freqs=2e14, buffer=0.5, depth=2, width=3):
 
     return monitors
 
+def make_field_monitor(device, freqs=2e14, z_center=None):
+    import numpy as np
+    # identify a device field z_center if None
+    if z_center is None:
+        z_center = []
+        for s in device.structures:
+            if type(s) == list:  # i identify non sub/superstrate if s is a list
+                s = s[0]
+                z_center.append(s.z_base+s.z_span/2)
+        z_center = np.average(z_center)
+    return td.FieldMonitor(
+        center=[0, 0, z_center],
+        size=[td.inf, td.inf, 0],
+        freqs=freqs,
+        name="field",
+    )
 
 def make_sim(
     device,
@@ -158,6 +174,7 @@ def make_sim(
     boundary=td.BoundarySpec.all_sides(boundary=td.PML()),
     grid_cells_per_wvl=15,
     run_time_factor=50,
+    field_monitor=False,
     visualize=True,
 ):
     import tidy3d as td
@@ -196,6 +213,8 @@ def make_sim(
             width= width_ports,
         ))
 
+    if field_monitor:
+        monitors.append(make_field_monitor(device, freqs=freqs))
     # simulation domain size (in microns)
     sim_size = [device.bounds.x_span, device.bounds.y_span, device.bounds.z_span]
 
