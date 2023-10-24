@@ -8,10 +8,14 @@ Layout processing module.
 from .core import layout, port, structure, region, component
 
 
-
 def dilate(vertices, extension=1):
-    return [[x+extension if x > 0 else x-extension, 
-             y+extension if y > 0 else y-extension] for x, y in vertices]
+    import numpy as np
+    x_min = np.min([i[0] for i in vertices])-extension
+    x_max = np.max([i[0] for i in vertices])+extension
+    y_min = np.min([i[1] for i in vertices])-extension
+    y_max = np.max([i[1] for i in vertices])+extension
+
+    return [[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]]
 
 
 def load_layout(fname):
@@ -27,7 +31,7 @@ def load_layout(fname):
     return layout(name, ly, cell)
 
 
-def load_region(layout, layer=[68, 0], z_center=0, z_span=5, extension=-0.1):
+def load_region(layout, layer=[68, 0], z_center=0, z_span=5, extension=-0.01):
     """
     Get device bounds.
 
