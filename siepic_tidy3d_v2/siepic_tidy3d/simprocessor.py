@@ -8,7 +8,7 @@ import tidy3d as td
 
 
 def make_source(
-    port, width=3, depth=2, freq0=2e14, num_freqs=5, fwidth=1e13, buffer=0.2
+    port, width=3, depth=2, freq0=2e14, num_freqs=5, fwidth=1e13, buffer=0.1
 ):
     import tidy3d as td
 
@@ -51,22 +51,38 @@ def make_structures(device, buffer = 2):
     structures = []
     for s in device.structures:
         if type(s) == list:
-            s = s[0]
-        if s.z_span<0:
-            bounds = (s.z_span, s.z_base)
+            for i in s:
+                if i.z_span<0:
+                    bounds = (i.z_span, i.z_base)
+                else:
+                    bounds = (i.z_base, i.z_span)
+                structures.append(
+                    td.Structure(
+                        geometry=td.PolySlab(
+                            vertices=i.polygon,
+                            slab_bounds=bounds,
+                            axis=2,
+                            sidewall_angle=(90 - i.sidewall_angle) * (np.pi / 180),
+                        ),
+                        medium=i.material,
+                    )
+                )
         else:
-            bounds = (s.z_base, s.z_span)
-        structures.append(
-            td.Structure(
-                geometry=td.PolySlab(
-                    vertices=s.polygon,
-                    slab_bounds=bounds,
-                    axis=2,
-                    sidewall_angle=(90 - s.sidewall_angle) * (np.pi / 180),
-                ),
-                medium=s.material,
+            if s.z_span<0:
+                bounds = (s.z_span, s.z_base)
+            else:
+                bounds = (s.z_base, s.z_span)
+            structures.append(
+                td.Structure(
+                    geometry=td.PolySlab(
+                        vertices=s.polygon,
+                        slab_bounds=bounds,
+                        axis=2,
+                        sidewall_angle=(90 - s.sidewall_angle) * (np.pi / 180),
+                    ),
+                    medium=s.material,
+                )
             )
-        )
 
     # extend ports beyond sim region
     for p in device.ports:
@@ -98,6 +114,7 @@ def make_structures(device, buffer = 2):
                 [p.center[0]+p.width/2, p.center[1]-buffer],
                 [p.center[0]+p.width/2, p.center[1]]
                 ]
+        
         structures.append(
             td.Structure(
                 geometry=td.PolySlab(
@@ -106,13 +123,13 @@ def make_structures(device, buffer = 2):
                     axis=2,
                     sidewall_angle=(90 - device.structures[0].sidewall_angle) * (np.pi / 180),
                 ),
-                medium=s.material,
+                medium=s[0].material,
             )
         )
     return structures
 
 
-def make_port_monitor(port, freqs=2e14, buffer=0.3, depth=2, width=3):
+def make_port_monitor(port, freqs=2e14, buffer=0.2, depth=2, width=3):
     """Create monitors for a given list of ports."""
     import tidy3d as td
 
@@ -174,6 +191,7 @@ def make_sim(
     boundary=td.BoundarySpec.all_sides(boundary=td.PML()),
     grid_cells_per_wvl=15,
     run_time_factor=50,
+    z_span=None,
     field_monitor=False,
     visualize=True,
 ):
@@ -188,7 +206,7 @@ def make_sim(
     lda_bw = wavl_max - wavl_min
     freq0 = td.C_0 / lda0
     freqs = td.C_0 / np.linspace(wavl_min, wavl_max, wavl_pts)
-    fwidth = td.C_0 * lda_bw / (lda0**2)  # 0.5*freq0
+    fwidth = 0.5 * (np.max(freqs) - np.min(freqs))
 
     # define structures from device
     structures = make_structures(device)
@@ -216,8 +234,10 @@ def make_sim(
     if field_monitor:
         monitors.append(make_field_monitor(device, freqs=freqs))
     # simulation domain size (in microns)
-    sim_size = [device.bounds.x_span, device.bounds.y_span, device.bounds.z_span]
-
+    if z_span == None:
+        sim_size = [device.bounds.x_span, device.bounds.y_span, device.bounds.z_span]
+    else:
+        sim_size = [device.bounds.x_span, device.bounds.y_span, z_span]
     run_time = (
         run_time_factor * max(sim_size) / td.C_0
     )  # 85/fwidth  # sim. time in secs
@@ -225,7 +245,7 @@ def make_sim(
     # initialize the simulation
     simulation = td.Simulation(
         size=sim_size,
-        grid_spec=td.GridSpec.auto(min_steps_per_wvl=grid_cells_per_wvl),
+        grid_spec=td.GridSpec.auto(min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0),
         structures=structures,
         sources=[source],
         monitors=monitors,
