@@ -3,7 +3,7 @@
 """
 Created on Mon Feb 20 12:19:10 2023
 
-@author: mustafah
+@author: Mustafa Hammood
 """
 import tidy3d as td
 from tidy3d import web
@@ -71,8 +71,14 @@ device = sitd.core.component(
 )
 
 #%%
-simulation = sitd.simprocessor.make_sim(device=device, field_monitor=True)
+simulation = sitd.simprocessor.make_sim(device=device,
+                                        wavl_min=wavl_min,
+                                        wavl_max=wavl_max,
+                                        wavl_pts=wavl_pts,
+                                        symmetry=symmetry,
+                                        z_span=z_span,
+                                        field_monitor=True)
 #%%
-job = web.Job(simulation=simulation, task_name='test')
+job = web.Job(simulation=simulation, task_name=fname_gds.removesuffix('.gds'))
 
 # %%
