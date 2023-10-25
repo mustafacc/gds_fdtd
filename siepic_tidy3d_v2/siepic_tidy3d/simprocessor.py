@@ -213,7 +213,7 @@ def make_sim(
 
     # define source on a given port
     source = make_source(
-        device.ports[0],
+        in_port,
         depth= depth_ports,
         width= width_ports,
         freq0=freq0,
