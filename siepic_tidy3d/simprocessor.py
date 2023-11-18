@@ -220,10 +220,21 @@ def make_field_monitor(device, freqs=2e14, axis="z", z_center=None):
             if type(s) == list:  # i identify non sub/superstrate if s is a list
                 s = s[0]
                 z_center.append(s.z_base + s.z_span / 2)
-        center = np.average(z_center)
+        z_center = np.average(z_center)
+    if axis == 'z':
+        center=[0, 0, z_center]
+        size=[td.inf, td.inf, 0]
+    elif axis == 'y':
+        center=[0, 0, z_center]
+        size=[td.inf, 0, td.inf]
+    elif axis == 'x':
+        center=[0, 0, z_center]
+        size=[0, td.inf, td.inf]
+    else:
+        Exception("Invalid axis for field monitor. Valid selections are 'x', 'y', 'z'.")
     return td.FieldMonitor(
-        center=[0, 0, center],
-        size=[td.inf, td.inf, 0],
+        center=center,
+        size=size,
         freqs=freqs,
         name="field",
     )
@@ -366,7 +377,7 @@ def visualize_results(sim_data, sim):
     import matplotlib.pyplot as plt
     import numpy as np
 
-    def get_directions(ports, in_port, sim_data):
+    def get_directions(ports):
         directions = []
         for p in ports:
             if p.direction in [0, 90]:
