@@ -361,3 +361,66 @@ def make_sim(
         plt.show()
     return simulation
 
+
+def visualize_results(sim_data, sim):
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    def get_directions(ports, in_port, sim_data):
+        directions = []
+        for p in ports:
+            if p.direction in [0, 90]:
+                directions.append('-')
+            else:
+                directions.append('+')
+        return tuple(directions)
+
+    def get_port_name(port):
+        return [int(i) for i in port if i.isdigit()][0]
+
+    def measure_transmission(sim_data, ports, num_ports, sim):
+        """Constructs a "row" of the scattering matrix when sourced from top left port"""
+        input_amp = sim_data[sim.in_port.name].amps.sel(direction="+")
+        amps = np.zeros((num_ports, sim.wavl_pts), dtype=complex)
+        directions = get_directions(ports)
+        for i, (monitor, direction) in enumerate(
+            zip(sim_data.simulation.monitors[:num_ports], directions)
+        ):
+            amp = sim_data[monitor.name].amps.sel(direction=direction)
+            amp_normalized = amp / input_amp
+            amps[i] = np.squeeze(amp_normalized.values)
+
+        return amps
+
+    def get_field_monitor_z(sim_data):
+        for i in sim_data.simulation.monitors:
+            if i.type == "FieldMonitor":
+                return i.center[2]
+
+    ports = sim.device.ports
+    amps_arms = measure_transmission(sim_data, ports, np.size(ports), sim)
+    print("mode amplitudes in each port: \n")
+    fig, ax = plt.subplots(1, 1)
+    wavl = np.linspace(sim.wavl_min, sim.wavl_max, sim.wavl_pts)
+    ax.set_xlabel("Wavelength [microns]")
+    ax.set_ylabel("Transmission [dB]")
+    for amp, monitor in zip(amps_arms, sim_data.simulation.monitors[:-1]):
+        print(f'\tmonitor     = "{monitor.name}"')
+        plt.plot(
+            wavl,
+            [10 * np.log10(abs(i) ** 2) for i in amp],
+            label=f"S{get_port_name(sim.in_port)}{get_port_name(monitor.name)}",
+        )
+        print(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
+        print(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
+    fig.legend()
+
+    fig, ax = plt.subplots(1, 1, figsize=(16, 3))
+    sim_data.plot_field(
+        "field",
+        "Ey",
+        z=get_field_monitor_z(sim_data),
+        freq=td.C_0 / ((sim.wavl_max + sim.wavl_min) / 2),
+        ax=ax,
+    )
+    plt.show()

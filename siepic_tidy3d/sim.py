@@ -207,45 +207,37 @@ def make_sim(cell, ly, layer_device, layer_devrec, layer_pinrec, in_port='opt1',
     return simulation
 
 
-def visualize_results(sim_data, cell, ly, layer_pinrec, in_port, wavl_offset=0):
+
+def visualize_results(sim_data, sim):
     import matplotlib.pyplot as plt
     import numpy as np
-    import tidy3d as td
-    from . import extend
 
-    def get_num_ports(sim_data):
-        num_ports = 0
-        for i in sim_data.simulation.monitors:
-            if i.type == 'ModeMonitor':
-                num_ports += 1
-        return num_ports
-
-    def get_wavl_range(sim_data):
-        import tidy3d as td
-        import numpy as np
-        for i in sim_data.simulation.monitors:
-            if i.type == 'ModeMonitor':
-                wavl_min = td.C_0/i.freqs[0]
-                wavl_max = td.C_0/i.freqs[-1]
-                wavl_pts = np.size(i.freqs)
-                return wavl_min, wavl_max, wavl_pts
-
-    def get_directions(ports, in_port, sim_data):
-        num_ports = get_num_ports(sim_data)
-        directions = ['+', ]*num_ports
-        directions[in_port-1] = '-'
+    def get_directions(ports):
+        directions = []
+        for p in ports:
+            if p.direction in [0, 90]:
+                directions.append("+")
+            else:
+                directions.append("-")
         return tuple(directions)
 
     def get_port_name(port):
-        return [int(i) for i in port if i.isdigit()][0]
+        index = ""
+        if type(port) is not str:
+            for char in port.name:
+                if char.isdigit():
+                    index += char
+        else:
+            for char in port:
+                if char.isdigit():
+                    index += char
+        return int(index)
 
-    def measure_transmission(sim_data, ports, num_ports):
+    def measure_transmission(sim_data, ports, num_ports, sim):
         """Constructs a "row" of the scattering matrix when sourced from top left port"""
-        input_port = find_port(ports, in_port)
-        input_amp = sim_data[in_port].amps.sel(direction="+")
-        wavl_min, wavl_max, wavl_pts = get_wavl_range(sim_data)
-        amps = np.zeros((num_ports, wavl_pts), dtype=complex)
-        directions = get_directions(ports, input_port, sim_data)
+        input_amp = sim_data[sim.in_port.name].amps.sel(direction="+")
+        amps = np.zeros((num_ports, sim.wavl_pts), dtype=complex)
+        directions = get_directions(ports)
         for i, (monitor, direction) in enumerate(
             zip(sim_data.simulation.monitors[:num_ports], directions)
         ):
@@ -257,27 +249,36 @@ def visualize_results(sim_data, cell, ly, layer_pinrec, in_port, wavl_offset=0):
 
     def get_field_monitor_z(sim_data):
         for i in sim_data.simulation.monitors:
-            if i.type == 'FieldMonitor':
+            if i.type == "FieldMonitor":
                 return i.center[2]
 
-    ports = extend.get_ports(cell, layer_pinrec, ly.dbu)
-    num_ports = get_num_ports(sim_data)
-    wavl_min, wavl_max, wavl_pts = get_wavl_range(sim_data)
-    amps_arms = measure_transmission(sim_data, ports, num_ports)
+
+    amps_arms = measure_transmission(sim_data, sim.device.ports, np.size(sim.device.ports), sim)
     print("mode amplitudes in each port: \n")
     fig, ax = plt.subplots(1, 1)
-    wavl = np.linspace(wavl_min, wavl_max, wavl_pts)
-    ax.set_xlabel('Wavelength [microns]')
-    ax.set_ylabel('Transmission [dB]')
-    for amp, monitor in zip(amps_arms, sim_data.simulation.monitors[:-1]):
+    wavl = np.linspace(sim.wavl_min, sim.wavl_max, sim.wavl_pts)
+    ax.set_xlabel("Wavelength [microns]")
+    ax.set_ylabel("Transmission [dB]")
+    for amp, monitor in zip(amps_arms, sim_data.simulation.monitors[:]):
         print(f'\tmonitor     = "{monitor.name}"')
-        plt.plot(wavl, [10*np.log10(abs(i)**2)
-                 for i in amp], label=f"S{get_port_name(in_port)}{get_port_name(monitor.name)}")
+        plt.plot(
+            wavl,
+            [10 * np.log10(abs(i) ** 2) for i in amp],
+            label=f"S{get_port_name(monitor.name)}{get_port_name(sim.in_port)}",
+        )
         print(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
         print(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
     fig.legend()
 
-    fig, ax = plt.subplots(1, 1, figsize=(16, 3))
-    sim_data.plot_field("field", "Ey", z=get_field_monitor_z(sim_data),
-                        freq=td.C_0/((wavl_max+wavl_min+wavl_offset)/2), ax=ax)
-    plt.show()
+
+    for i in sim_data.simulation.monitors:
+        if i.type == "FieldMonitor":
+            fig, ax = plt.subplots(1, 1, figsize=(16, 3))
+            sim_data.plot_field(
+                "field",
+                "Ey",
+                z=get_field_monitor_z(sim_data),
+                freq=td.C_0 / ((sim.wavl_max + sim.wavl_min) / 2),
+                ax=ax,
+            )
+            plt.show()

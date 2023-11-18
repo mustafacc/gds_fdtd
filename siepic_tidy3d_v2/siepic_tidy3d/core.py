@@ -4,6 +4,7 @@ SiEPIC-Tidy3D integration toolbox.
 Core objects module.
 @author: Mustafa Hammood, 2023
 """
+import tidy3d as td
 
 
 class layout:

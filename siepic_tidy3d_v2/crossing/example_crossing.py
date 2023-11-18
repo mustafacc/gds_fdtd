@@ -1,8 +1,6 @@
 # %%!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Feb 20 12:19:10 2023
-
 @author: Mustafa Hammood
 """
 import tidy3d as td
@@ -26,7 +24,6 @@ mat_sub = td.Medium(permittivity=1.48**2)
 mat_super = td.Medium(permittivity=1.48**2)
 
 # frequency and bandwidth of pulsed excitation
-in_port = "opt1"  # input port
 in_pol = "TE"  # input polarization state (options are TE, TM, TETM)
 wavl_min = 1.45  # simulation wavelength start (microns)
 wavl_max = 1.65  # simulation wavelength end (microns)
@@ -70,20 +67,22 @@ device = sitd.core.component(
     bounds=bounds,
 )
 
-#%%
-simulation = sitd.simprocessor.make_sim(device=device,
-                                        wavl_min=wavl_min,
-                                        wavl_max=wavl_max,
-                                        wavl_pts=wavl_pts,
-                                        symmetry=symmetry,
-                                        z_span=z_span,
-                                        field_monitor_axis=None)
+# %%
+simulation = sitd.simprocessor.make_sim(
+    device=device,
+    wavl_min=wavl_min,
+    wavl_max=wavl_max,
+    wavl_pts=wavl_pts,
+    symmetry=symmetry,
+    z_span=z_span,
+    field_monitor_axis=None,
+)
 # %% upload and run the simulation
 # create job, upload sim to server to begin running
-job = web.Job(simulation=simulation.sim, task_name=fname_gds.removesuffix('.gds'))
+job = web.Job(simulation=simulation.sim, task_name=fname_gds.removesuffix(".gds"))
 
 # %% run the simulation. CHECK THE SIMULATION IN THE UI BEFORE RUNNING!
-sim_data = job.run(path=f"{fname_gds}/sim_data.hdf5")
+sim_data = job.run(path=f"{fname_gds.removesuffix('.gds')}/sim_data.hdf5")
 
 # %% visualize the results
 sitd.simprocessor.visualize_results(sim_data, simulation)

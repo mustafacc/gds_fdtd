@@ -5,6 +5,7 @@ Created on Sun Jan 15 18:10:33 2023
 
 @author: mustafa
 """
+#%%
 from siepic_tidy3d import geometry, extend, sim
 import klayout.db as pya
 import tidy3d as td
