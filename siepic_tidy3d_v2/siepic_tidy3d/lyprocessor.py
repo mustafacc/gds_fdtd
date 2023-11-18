@@ -5,7 +5,7 @@ Layout processing module.
 @author: Mustafa Hammood, 2023
 """
 
-from .core import layout, port, structure, region, component
+from .core import layout, port, structure, region
 
 
 def dilate(vertices, extension=1):

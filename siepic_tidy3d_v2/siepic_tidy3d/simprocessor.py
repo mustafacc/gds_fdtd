@@ -10,6 +10,20 @@ import tidy3d as td
 def make_source(
     port, width=3, depth=2, freq0=2e14, num_freqs=5, fwidth=1e13, buffer=0.1
 ):
+    """Create a simulation mode source on an input port.
+
+    Args:
+        port (port object): Port to add source to.
+        width (int, optional): Source width. Defaults to 3 microns.
+        depth (int, optional): Source depth. Defaults to 2 microns.
+        freq0 (_type_, optional): Source's centre frequency. Defaults to 2e14 hz.
+        num_freqs (int, optional): Frequency evaluation mode ports. Defaults to 5.
+        fwidth (_type_, optional): Source's bandwidth. Defaults to 1e13 hz.
+        buffer (float, optional): Distance between edge of simulation and source. Defaults to 0.1 microns.
+
+    Returns:
+        _type_: _description_
+    """
     import tidy3d as td
 
     if port.direction == 0:
@@ -44,7 +58,16 @@ def make_source(
     return msource
 
 
-def make_structures(device, buffer = 2):
+def make_structures(device, buffer=2):
+    """Create a tidy3d structure object from a device objcet.
+
+    Args:
+        device (device object): Device to create the structure from.
+        buffer (int, optional): Extension of ports beyond simulation region . Defaults to 2 microns.
+
+    Returns:
+        list: list of structures generated from the device.
+    """
     import tidy3d as td
     import numpy as np
 
@@ -52,7 +75,7 @@ def make_structures(device, buffer = 2):
     for s in device.structures:
         if type(s) == list:
             for i in s:
-                if i.z_span<0:
+                if i.z_span < 0:
                     bounds = (i.z_span, i.z_base)
                 else:
                     bounds = (i.z_base, i.z_span)
@@ -68,7 +91,7 @@ def make_structures(device, buffer = 2):
                     )
                 )
         else:
-            if s.z_span<0:
+            if s.z_span < 0:
                 bounds = (s.z_span, s.z_base)
             else:
                 bounds = (s.z_base, s.z_span)
@@ -88,40 +111,44 @@ def make_structures(device, buffer = 2):
     for p in device.ports:
         if p.direction == 0:
             pts = [
-                [p.center[0], p.center[1]+p.width/2],
-                [p.center[0]+buffer, p.center[1]+p.width/2],
-                [p.center[0]+buffer, p.center[1]-p.width/2],
-                [p.center[0], p.center[1]-p.width/2]
-                ]
+                [p.center[0], p.center[1] + p.width / 2],
+                [p.center[0] + buffer, p.center[1] + p.width / 2],
+                [p.center[0] + buffer, p.center[1] - p.width / 2],
+                [p.center[0], p.center[1] - p.width / 2],
+            ]
         elif p.direction == 180:
             pts = [
-                [p.center[0], p.center[1]+p.width/2],
-                [p.center[0]-buffer, p.center[1]+p.width/2],
-                [p.center[0]-buffer, p.center[1]-p.width/2],
-                [p.center[0], p.center[1]-p.width/2]
-                ]
+                [p.center[0], p.center[1] + p.width / 2],
+                [p.center[0] - buffer, p.center[1] + p.width / 2],
+                [p.center[0] - buffer, p.center[1] - p.width / 2],
+                [p.center[0], p.center[1] - p.width / 2],
+            ]
         elif p.direction == 90:
             pts = [
-                [p.center[0]-p.width/2, p.center[1]],
-                [p.center[0]-p.width/2, p.center[1]+buffer],
-                [p.center[0]+p.width/2, p.center[1]+buffer],
-                [p.center[0]+p.width/2, p.center[1]]
-                ]
+                [p.center[0] - p.width / 2, p.center[1]],
+                [p.center[0] - p.width / 2, p.center[1] + buffer],
+                [p.center[0] + p.width / 2, p.center[1] + buffer],
+                [p.center[0] + p.width / 2, p.center[1]],
+            ]
         elif p.direction == 270:
             pts = [
-                [p.center[0]-p.width/2, p.center[1]],
-                [p.center[0]-p.width/2, p.center[1]-buffer],
-                [p.center[0]+p.width/2, p.center[1]-buffer],
-                [p.center[0]+p.width/2, p.center[1]]
-                ]
-        
+                [p.center[0] - p.width / 2, p.center[1]],
+                [p.center[0] - p.width / 2, p.center[1] - buffer],
+                [p.center[0] + p.width / 2, p.center[1] - buffer],
+                [p.center[0] + p.width / 2, p.center[1]],
+            ]
+
         structures.append(
             td.Structure(
                 geometry=td.PolySlab(
                     vertices=pts,
-                    slab_bounds=(p.center[2]-p.height/2, p.center[2]+p.height/2),
+                    slab_bounds=(
+                        p.center[2] - p.height / 2,
+                        p.center[2] + p.height / 2,
+                    ),
                     axis=2,
-                    sidewall_angle=(90 - device.structures[0].sidewall_angle) * (np.pi / 180),
+                    sidewall_angle=(90 - device.structures[0].sidewall_angle)
+                    * (np.pi / 180),
                 ),
                 medium=s[0].material,
             )
@@ -130,8 +157,19 @@ def make_structures(device, buffer = 2):
 
 
 def make_port_monitor(port, freqs=2e14, buffer=0.2, depth=2, width=3):
-    """Create monitors for a given list of ports."""
-    import tidy3d as td
+    """
+    Create mode monitor object for a given port.
+
+    Args:
+        port (port object): Port to create the monitor for.
+        freqs (float, optional): Mode monitor's central frequency. Defaults to 2e14 hz.
+        buffer (float, optional): Distance between monitor and port location. Defaults to 0.2 microns.
+        depth (int, optional): Monitor's depth. Defaults to 2 microns.
+        width (int, optional): Monitors width. Defaults to 3 microns.
+
+    Returns:
+        monitor: Generated ModeMonitor object.
+    """
 
     if port.direction == 0:
         x_buffer = -buffer
@@ -149,34 +187,47 @@ def make_port_monitor(port, freqs=2e14, buffer=0.2, depth=2, width=3):
         x_buffer = 0
         y_buffer = buffer
         size = [width, 0, depth]
-    # mode monitors
-    monitors = td.ModeMonitor(
-            center=[port.x + x_buffer, port.y + y_buffer, port.z],
-            size=size,
-            freqs=freqs,
-            mode_spec=td.ModeSpec(),
-            name=port.name,
-        )
+    # mode monitor
+    monitor = td.ModeMonitor(
+        center=[port.x + x_buffer, port.y + y_buffer, port.z],
+        size=size,
+        freqs=freqs,
+        mode_spec=td.ModeSpec(),
+        name=port.name,
+    )
+
+    return monitor
 
 
-    return monitors
+def make_field_monitor(device, freqs=2e14, axis="z", z_center=None):
+    """Make a field monitor for an input device
 
-def make_field_monitor(device, freqs=2e14, z_center=None):
+    Args:
+        device (device object): Device to create field monitor for.
+        freqs (float, optional): _description_. Defaults to 2e14.
+        z_center (float, optional): Z center for field monitor. Defaults to None.
+        axis (string, optional): Field monitor's axis. Valid options are 'x', 'y', 'z' Defaults to 'z'.
+
+    Returns:
+        FieldMonitor: Generated Tidy3D field monitor object
+    """
     import numpy as np
+
     # identify a device field z_center if None
     if z_center is None:
         z_center = []
         for s in device.structures:
             if type(s) == list:  # i identify non sub/superstrate if s is a list
                 s = s[0]
-                z_center.append(s.z_base+s.z_span/2)
-        z_center = np.average(z_center)
+                z_center.append(s.z_base + s.z_span / 2)
+        center = np.average(z_center)
     return td.FieldMonitor(
-        center=[0, 0, z_center],
+        center=[0, 0, center],
         size=[td.inf, td.inf, 0],
         freqs=freqs,
         name="field",
     )
+
 
 def make_sim(
     device,
@@ -192,10 +243,31 @@ def make_sim(
     grid_cells_per_wvl=15,
     run_time_factor=50,
     z_span=None,
-    field_monitor=False,
+    field_monitor_axis=None,
     visualize=True,
 ):
-    import tidy3d as td
+    """Generate a single port excitation simulation.
+
+    Args:
+        device (device object): Device to simulate.
+        wavl_min (float, optional): Start wavelength. Defaults to 1.45 microns.
+        wavl_max (float, optional): End wavelength. Defaults to 1.65 microns.
+        wavl_pts (int, optional): Number of wavelength evaluation pts. Defaults to 101.
+        width_ports (int, optional): Width of source and monitors. Defaults to 3 microns.
+        depth_ports (int, optional): Depth of source and monitors. Defaults to 2 microns.
+        symmetry (tuple, optional): Enforcing symmetry along axes. Defaults to (0, 0, 0).
+        num_freqs (int, optional): Number of source's frequency mode evaluation pts. Defaults to 5 microns.
+        in_port (port object, optional): Input port. Defaults to None.
+        boundary (td.BonudarySpec object, optional): Configure boundary conditions. Defaults to td.BoundarySpec.all_sides(boundary=td.PML()).
+        grid_cells_per_wvl (int, optional): Mesh settings, grid cells per wavelength. Defaults to 15.
+        run_time_factor (int, optional): Runtime multiplier factor. Set larger if runtime is insufficient. Defaults to 50.
+        z_span (float, optional): Simulation's depth. Defaults to None.
+        field_monitor_axis (str, optional): Flag to create a field monitor. Options are 'x', 'y', 'z', or none. Defaults to None.
+        visualize (bool, optional): Simulation visualization flag. Defaults to True.
+
+    Returns:
+        _type_: _description_
+    """
     import numpy as np
     import matplotlib.pyplot as plt
 
@@ -214,8 +286,8 @@ def make_sim(
     # define source on a given port
     source = make_source(
         in_port,
-        depth= depth_ports,
-        width= width_ports,
+        depth=depth_ports,
+        width=width_ports,
         freq0=freq0,
         num_freqs=num_freqs,
         fwidth=fwidth,
@@ -224,15 +296,19 @@ def make_sim(
     # define monitors
     monitors = []
     for p in device.ports:
-        monitors.append(make_port_monitor(
-            p,
-            freqs=freqs,
-            depth= depth_ports,
-            width= width_ports,
-        ))
+        monitors.append(
+            make_port_monitor(
+                p,
+                freqs=freqs,
+                depth=depth_ports,
+                width=width_ports,
+            )
+        )
 
-    if field_monitor:
-        monitors.append(make_field_monitor(device, freqs=freqs))
+    if field_monitor_axis is not None:
+        monitors.append(
+            make_field_monitor(device, freqs=freqs, axis=field_monitor_axis)
+        )
     # simulation domain size (in microns)
     if z_span == None:
         sim_size = [device.bounds.x_span, device.bounds.y_span, device.bounds.z_span]
@@ -245,7 +321,9 @@ def make_sim(
     # initialize the simulation
     simulation = td.Simulation(
         size=sim_size,
-        grid_spec=td.GridSpec.auto(min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0),
+        grid_spec=td.GridSpec.auto(
+            min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0
+        ),
         structures=structures,
         sources=[source],
         monitors=monitors,
