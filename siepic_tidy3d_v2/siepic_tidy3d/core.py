@@ -85,3 +85,13 @@ class component:
         self.structures = structures
         self.ports = ports
         self.bounds = bounds
+
+
+class Simulation:
+    def __init__(self, in_port, device, wavl_min, wavl_max, wavl_pts, sim):
+        self.in_port = in_port
+        self.device = device
+        self.wavl_min = wavl_min
+        self.wavl_max = wavl_max
+        self.wavl_pts = wavl_pts
+        self.sim = sim

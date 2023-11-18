@@ -268,6 +268,8 @@ def make_sim(
     Returns:
         _type_: _description_
     """
+    from .core import Simulation
+
     import numpy as np
     import matplotlib.pyplot as plt
 
@@ -319,22 +321,33 @@ def make_sim(
     )  # 85/fwidth  # sim. time in secs
 
     # initialize the simulation
-    simulation = td.Simulation(
-        size=sim_size,
-        grid_spec=td.GridSpec.auto(
-            min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0
+    simulation = Simulation(
+        in_port=in_port,
+        wavl_max=wavl_max,
+        wavl_min=wavl_min,
+        wavl_pts=wavl_pts,
+        device=device,
+        sim=td.Simulation(
+            size=sim_size,
+            grid_spec=td.GridSpec.auto(
+                min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0
+            ),
+            structures=structures,
+            sources=[source],
+            monitors=monitors,
+            run_time=run_time,
+            boundary_spec=boundary,
+            center=(
+                device.bounds.x_center,
+                device.bounds.y_center,
+                device.bounds.z_center,
+            ),
+            symmetry=symmetry,
         ),
-        structures=structures,
-        sources=[source],
-        monitors=monitors,
-        run_time=run_time,
-        boundary_spec=boundary,
-        center=(device.bounds.x_center, device.bounds.y_center, device.bounds.z_center),
-        symmetry=symmetry,
     )
 
     if visualize:
-        for m in simulation.monitors:
+        for m in simulation.sim.monitors:
             m.help()
 
         source.source_time.plot(np.linspace(0, run_time, 1001))
@@ -342,8 +355,9 @@ def make_sim(
 
         # visualize geometry
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 4))
-        simulation.plot(z=device.bounds.z_center, ax=ax1)
-        simulation.plot(x=0.0, ax=ax2)
+        simulation.sim.plot(z=device.bounds.z_center, ax=ax1)
+        simulation.sim.plot(x=0.0, ax=ax2)
         ax2.set_xlim([-device.bounds.x_span / 2, device.bounds.y_span / 2])
         plt.show()
     return simulation
+

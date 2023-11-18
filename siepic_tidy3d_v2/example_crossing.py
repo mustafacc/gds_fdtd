@@ -77,8 +77,13 @@ simulation = sitd.simprocessor.make_sim(device=device,
                                         wavl_pts=wavl_pts,
                                         symmetry=symmetry,
                                         z_span=z_span,
-                                        field_monitor=True)
-#%%
-job = web.Job(simulation=simulation, task_name=fname_gds.removesuffix('.gds'))
+                                        field_monitor_axis=None)
+# %% upload and run the simulation
+# create job, upload sim to server to begin running
+job = web.Job(simulation=simulation.sim, task_name=fname_gds.removesuffix('.gds'))
 
-# %%
+# %% run the simulation. CHECK THE SIMULATION IN THE UI BEFORE RUNNING!
+sim_data = job.run(path=f"{fname_gds}/sim_data.hdf5")
+
+# %% visualize the results
+sitd.simprocessor.visualize_results(sim_data, simulation)
