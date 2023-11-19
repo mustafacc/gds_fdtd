@@ -150,7 +150,7 @@ def make_structures(device, buffer=2):
                     sidewall_angle=(90 - device.structures[0].sidewall_angle)
                     * (np.pi / 180),
                 ),
-                medium=s[0].material,
+                medium=p.material,
             )
         )
     return structures

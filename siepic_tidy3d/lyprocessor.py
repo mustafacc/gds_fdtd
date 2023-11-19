@@ -145,7 +145,16 @@ def load_structure_from_bounds(bounds, name, z_base, z_span, material, extension
     )
 
 
-def load_ports(layout, layer=[1, 10], z_center=0, z_span=0.22):
+def load_ports(layout, layer=[1, 10]):
+    """Load ports from layout.
+
+    Args:
+        layout (pya.Layout): Input layout object
+        layer (list, optional): Ports layer identifier. Defaults to [1, 10].
+
+    Returns:
+        list: List of extracted port objects.
+    """
     import klayout.db as pya
 
     def get_kdb_layer(layer):
@@ -199,14 +208,14 @@ def load_ports(layout, layer=[1, 10], z_center=0, z_span=0.22):
         if s.shape().is_path():
             width = s.shape().path_dwidth
             direction = get_direction(s.shape().path)
-            center = list(get_center(s.shape().path, layout.ly.dbu)) + [z_center]
+            # initialize Z center with none. Z center is identified in component init
+            center = list(get_center(s.shape().path, layout.ly.dbu)) + [None]
             name = get_name(layout.cell, center[0], center[1], layout.ly.dbu)
             ports.append(
                 port(
                     name=name,
                     center=center,
                     width=width,
-                    height=z_span,
                     direction=direction,
                 )
             )

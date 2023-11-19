@@ -7,6 +7,29 @@ Core objects module.
 import tidy3d as td
 
 
+def is_point_inside_polygon(point, polygon_points):
+    """Identify if a point inside a polygon using Shapely.
+
+    Args:
+        point (list): Point for test [x, y]
+        polygon_points (list): List of points defining a polygon [[x1, y1], [x2,y2], ..]
+
+    Returns:
+        bool: Test result.
+    """
+    from shapely.geometry import Point
+    from shapely.geometry.polygon import Polygon
+
+    # Create a Shapely Point object for the given coordinate
+    point = Point(point)
+
+    # Create a Shapely Polygon object from the list of polygon points
+    polygon = Polygon(polygon_points)
+
+    # Check if the point is inside the polygon
+    return point.within(polygon) or polygon.touches(point)
+
+
 class layout:
     def __init__(self, name, ly, cell):
         self.name = name
@@ -19,12 +42,15 @@ class layout:
 
 
 class port:
-    def __init__(self, name, center, width, height, direction):
+    def __init__(self, name, center, width, direction):
         self.name = name
         self.center = center
         self.width = width
-        self.height = height
         self.direction = direction
+        # initialize height as none
+        # will be assigned upon component __init__
+        self.height = None
+        self.material = None
 
     @property
     def x(self):
@@ -86,6 +112,20 @@ class component:
         self.structures = structures
         self.ports = ports
         self.bounds = bounds
+        self.get_port_z()  # initialize ports z center and z span
+
+    def get_port_z(self):
+        # iterate through each port
+        for p in self.ports:
+            # check if port location is within any structure
+            for s in self.structures:
+                # hack: if s is a list then it's not a box/clad region, find a better way to identify this..
+                if type(s) == list:
+                    if is_point_inside_polygon(p.center[:2], s[0].polygon):
+                        p.center[2] = s[0].z_base + s[0].z_span/2
+                        p.height = s[0].z_span
+                        p.material = s[0].material
+        return
 
 
 class Simulation:
@@ -136,7 +176,7 @@ class Simulation:
                     return i.center[2]
 
         ports = self.device.ports
-        amps_arms = measure_transmission(self.results, ports, np.size(ports))
+        amps_arms = measure_transmission(ports, np.size(ports))
         print("mode amplitudes in each port: \n")
         fig, ax = plt.subplots(1, 1)
         wavl = np.linspace(self.wavl_min, self.wavl_max, self.wavl_pts)
