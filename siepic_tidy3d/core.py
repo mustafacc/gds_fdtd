@@ -89,10 +89,74 @@ class component:
 
 
 class Simulation:
-    def __init__(self, in_port, device, wavl_min, wavl_max, wavl_pts, sim):
+    def __init__(self, in_port, device, wavl_min=1.45, wavl_max=1.65, wavl_pts=101, sim=None):
         self.in_port = in_port
         self.device = device
         self.wavl_min = wavl_min
         self.wavl_max = wavl_max
         self.wavl_pts = wavl_pts
         self.sim = sim
+        self.results = None
+
+    def visualize_results(self):
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        def get_directions(ports):
+            directions = []
+            for p in ports:
+                if p.direction in [0, 90]:
+                    directions.append("-")
+                else:
+                    directions.append("+")
+            return tuple(directions)
+
+        def get_port_name(port):
+            return [int(i) for i in port if i.isdigit()][0]
+
+        def measure_transmission(ports, num_ports):
+            """Constructs a "row" of the scattering matrix when sourced from top left port"""
+            input_amp = self.results[self.in_port.name].amps.sel(direction="+")
+            amps = np.zeros((num_ports, self.wavl_pts), dtype=complex)
+            directions = get_directions(ports)
+            for i, (monitor, direction) in enumerate(
+                zip(self.results.simulation.monitors[:num_ports], directions)
+            ):
+                amp = self.results[monitor.name].amps.sel(direction=direction)
+                amp_normalized = amp / input_amp
+                amps[i] = np.squeeze(amp_normalized.values)
+
+            return amps
+
+        def get_field_monitor_z():
+            for i in self.results.simulation.monitors:
+                if i.type == "FieldMonitor":
+                    return i.center[2]
+
+        ports = self.device.ports
+        amps_arms = measure_transmission(self.results, ports, np.size(ports))
+        print("mode amplitudes in each port: \n")
+        fig, ax = plt.subplots(1, 1)
+        wavl = np.linspace(self.wavl_min, self.wavl_max, self.wavl_pts)
+        ax.set_xlabel("Wavelength [microns]")
+        ax.set_ylabel("Transmission [dB]")
+        for amp, monitor in zip(amps_arms, self.results.simulation.monitors[:-1]):
+            print(f'\tmonitor     = "{monitor.name}"')
+            plt.plot(
+                wavl,
+                [10 * np.log10(abs(i) ** 2) for i in amp],
+                label=f"S{get_port_name(self.in_port)}{get_port_name(monitor.name)}",
+            )
+            print(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
+            print(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
+        fig.legend()
+
+        fig, ax = plt.subplots(1, 1, figsize=(16, 3))
+        self.results.plot_field(
+            "field",
+            "Ey",
+            z=get_field_monitor_z(self.results),
+            freq=td.C_0 / ((self.wavl_max + self.wavl_min) / 2),
+            ax=ax,
+        )
+        plt.show()
