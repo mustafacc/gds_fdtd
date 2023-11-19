@@ -10,10 +10,11 @@ from .core import layout, port, structure, region
 
 def dilate(vertices, extension=1):
     import numpy as np
-    x_min = np.min([i[0] for i in vertices])-extension
-    x_max = np.max([i[0] for i in vertices])+extension
-    y_min = np.min([i[1] for i in vertices])-extension
-    y_max = np.max([i[1] for i in vertices])+extension
+
+    x_min = np.min([i[0] for i in vertices]) - extension
+    x_max = np.max([i[0] for i in vertices]) + extension
+    y_min = np.min([i[1] for i in vertices]) - extension
+    y_max = np.max([i[1] for i in vertices]) + extension
 
     return [[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]]
 
@@ -132,6 +133,7 @@ def load_structure(layout, name, layer, z_base, z_span, material, sidewall_angle
             )
         )
     return structures
+
 
 def load_structure_from_bounds(bounds, name, z_base, z_span, material, extension=2):
     return structure(

@@ -89,7 +89,9 @@ class component:
 
 
 class Simulation:
-    def __init__(self, in_port, device, wavl_min=1.45, wavl_max=1.65, wavl_pts=101, sim=None):
+    def __init__(
+        self, in_port, device, wavl_min=1.45, wavl_max=1.65, wavl_pts=101, sim=None
+    ):
         self.in_port = in_port
         self.device = device
         self.wavl_min = wavl_min

@@ -76,9 +76,9 @@ def make_structures(device, buffer=2):
         if type(s) == list:
             for i in s:
                 if i.z_span < 0:
-                    bounds = (i.z_base+i.z_span, i.z_base)
+                    bounds = (i.z_base + i.z_span, i.z_base)
                 else:
-                    bounds = (i.z_base, i.z_base+i.z_span)
+                    bounds = (i.z_base, i.z_base + i.z_span)
                 structures.append(
                     td.Structure(
                         geometry=td.PolySlab(
@@ -92,9 +92,9 @@ def make_structures(device, buffer=2):
                 )
         else:
             if s.z_span < 0:
-                bounds = (s.z_base+s.z_span, s.z_base)
+                bounds = (s.z_base + s.z_span, s.z_base)
             else:
-                bounds = (s.z_base, s.z_base+s.z_span)
+                bounds = (s.z_base, s.z_base + s.z_span)
             structures.append(
                 td.Structure(
                     geometry=td.PolySlab(
@@ -221,15 +221,15 @@ def make_field_monitor(device, freqs=2e14, axis="z", z_center=None):
                 s = s[0]
                 z_center.append(s.z_base + s.z_span / 2)
         z_center = np.average(z_center)
-    if axis == 'z':
-        center=[0, 0, z_center]
-        size=[td.inf, td.inf, 0]
-    elif axis == 'y':
-        center=[0, 0, z_center]
-        size=[td.inf, 0, td.inf]
-    elif axis == 'x':
-        center=[0, 0, z_center]
-        size=[0, td.inf, td.inf]
+    if axis == "z":
+        center = [0, 0, z_center]
+        size = [td.inf, td.inf, 0]
+    elif axis == "y":
+        center = [0, 0, z_center]
+        size = [td.inf, 0, td.inf]
+    elif axis == "x":
+        center = [0, 0, z_center]
+        size = [0, td.inf, td.inf]
     else:
         Exception("Invalid axis for field monitor. Valid selections are 'x', 'y', 'z'.")
     return td.FieldMonitor(
@@ -371,4 +371,3 @@ def make_sim(
         ax2.set_xlim([-device.bounds.x_span / 2, device.bounds.y_span / 2])
         plt.show()
     return simulation
-
