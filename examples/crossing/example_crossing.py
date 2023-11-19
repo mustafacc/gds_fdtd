@@ -36,9 +36,7 @@ symmetry = (0, 0, 1)
 layout = sitd.lyprocessor.load_layout(fname_gds)
 
 # load all the ports in the device and (optional) initialize each to have a center
-ports_si = sitd.lyprocessor.load_ports(
-    layout, layer=[1, 10], z_center=thickness_si / 2, z_span=thickness_si
-)
+ports_si = sitd.lyprocessor.load_ports(layout, layer=[1, 10])
 
 # load the device simulation region
 bounds = sitd.lyprocessor.load_region(
@@ -82,7 +80,7 @@ simulation = sitd.simprocessor.make_sim(
 job = web.Job(simulation=simulation.sim, task_name=fname_gds.removesuffix(".gds"))
 
 # %% run the simulation. CHECK THE SIMULATION IN THE UI BEFORE RUNNING!
-sim_data = job.run(path=f"{fname_gds.removesuffix('.gds')}/sim_data.hdf5")
+simulation.results = job.run(path=f"{fname_gds.removesuffix('.gds')}/sim_data.hdf5")
 
 # %% visualize the results
-sitd.simprocessor.visualize_results(sim_data, simulation)
+simulation.visualize_results()

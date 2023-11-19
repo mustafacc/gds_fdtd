@@ -64,6 +64,11 @@ class port:
     def z(self):
         return self.center[2]
 
+    @property
+    def idx(self):
+        """index of the port, extracted from name."""
+        return int("".join(char for char in reversed(self.name) if char.isdigit()))
+
 
 class structure:
     def __init__(self, name, polygon, z_base, z_span, material, sidewall_angle=90):
@@ -148,9 +153,9 @@ class Simulation:
             directions = []
             for p in ports:
                 if p.direction in [0, 90]:
-                    directions.append("-")
-                else:
                     directions.append("+")
+                else:
+                    directions.append("-")
             return tuple(directions)
 
         def get_port_name(port):
@@ -182,12 +187,12 @@ class Simulation:
         wavl = np.linspace(self.wavl_min, self.wavl_max, self.wavl_pts)
         ax.set_xlabel("Wavelength [microns]")
         ax.set_ylabel("Transmission [dB]")
-        for amp, monitor in zip(amps_arms, self.results.simulation.monitors[:-1]):
+        for amp, monitor in zip(amps_arms, self.results.simulation.monitors):
             print(f'\tmonitor     = "{monitor.name}"')
             plt.plot(
                 wavl,
                 [10 * np.log10(abs(i) ** 2) for i in amp],
-                label=f"S{get_port_name(self.in_port)}{get_port_name(monitor.name)}",
+                label=f"S{self.in_port.idx}{get_port_name(monitor.name)}",
             )
             print(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
             print(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
