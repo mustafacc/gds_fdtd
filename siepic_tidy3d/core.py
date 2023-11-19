@@ -126,10 +126,11 @@ class component:
             for s in self.structures:
                 # hack: if s is a list then it's not a box/clad region, find a better way to identify this..
                 if type(s) == list:
-                    if is_point_inside_polygon(p.center[:2], s[0].polygon):
-                        p.center[2] = s[0].z_base + s[0].z_span/2
-                        p.height = s[0].z_span
-                        p.material = s[0].material
+                    for poly in s:
+                        if is_point_inside_polygon(p.center[:2], poly.polygon):
+                            p.center[2] = s[0].z_base + s[0].z_span/2
+                            p.height = s[0].z_span
+                            p.material = s[0].material
         return
 
 
