@@ -153,10 +153,6 @@ class Simulation:
         self.job = web.Job(simulation=self.sim, task_name=self.device.name)
 
     def execute(self):
-        self.results = self.job.run(path=f"{self.device.name}/sim_data.hdf5")
-
-    def visualize_results(self):
-        import matplotlib.pyplot as plt
         import numpy as np
 
         def get_directions(ports):
@@ -173,14 +169,18 @@ class Simulation:
                 return "-"
             else:
                 return "+"
+
         def get_port_name(port):
             return [int(i) for i in port if i.isdigit()][0]
 
-        def measure_transmission(ports, num_ports):
+        def measure_transmission():
             """Constructs a "row" of the scattering matrix"""
-            input_amp = self.results[self.in_port.name].amps.sel(direction=get_source_direction(self.in_port))
+            num_ports = np.size(self.device.ports)
+            input_amp = self.results[self.in_port.name].amps.sel(
+                direction=get_source_direction(self.in_port)
+            )
             amps = np.zeros((num_ports, self.wavl_pts), dtype=complex)
-            directions = get_directions(ports)
+            directions = get_directions(self.device.ports)
             for i, (monitor, direction) in enumerate(
                 zip(self.results.simulation.monitors[:num_ports], directions)
             ):
@@ -190,26 +190,34 @@ class Simulation:
 
             return amps
 
-        ports = self.device.ports
-        amps_arms = measure_transmission(ports, np.size(ports))
+        self.results = self.job.run(path=f"{self.device.name}/sim_data.hdf5")
+
+        amps_arms = measure_transmission()
+
         print("mode amplitudes in each port: \n")
-        fig, ax = plt.subplots(1, 1)
         wavl = np.linspace(self.wavl_min, self.wavl_max, self.wavl_pts)
-        ax.set_xlabel("Wavelength [microns]")
-        ax.set_ylabel("Transmission [dB]")
+        self.s_parameters = s_parameters()
         for amp, monitor in zip(amps_arms, self.results.simulation.monitors):
             print(f'\tmonitor     = "{monitor.name}"')
-            plt.plot(
-                wavl,
-                [10 * np.log10(abs(i) ** 2) for i in amp],
-                label=f"S{self.in_port.idx}{get_port_name(monitor.name)}",
-            )
             print(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
             print(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
-        fig.legend()
+            self.s_parameters.add_param(
+                sparam(
+                idx_in = self.in_port.idx,
+                idx_out = get_port_name(monitor.name),
+                mode_in = 1,
+                mode_out = 1,
+                freq = td.C_0/wavl,
+                s = amp
+                )
+            )
+
+    def visualize_results(self):
+        import matplotlib.pyplot as plt
+
+        self.s_parameters.plot()
 
         fig, ax = plt.subplots(1, 1, figsize=(16, 3))
-
         self.results.plot_field(
             "field",
             "Ey",
@@ -218,3 +226,40 @@ class Simulation:
         )
 
         plt.show()
+
+
+class s_parameters:
+    def __init__(self, entries=[]):
+        self.entries = entries
+        return
+
+    def add_param(self, sparam):
+        self.entries.append(sparam)
+
+    def plot(self):
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        fig, ax = plt.subplots(1, 1)
+        ax.set_xlabel("Wavelength [microns]")
+        ax.set_ylabel("Transmission [dB]")
+        for i in self.entries:
+            print("mode amplitudes in each port: \n")
+            mag = [10 * np.log10(abs(i) ** 2) for i in i.s]
+            phase = [np.angle(i)**2 for i in i.s]
+            ax.plot(td.C_0/i.freq, mag, label=i.label)
+            fig.legend()
+
+
+class sparam:
+    def __init__(self, idx_in, idx_out, mode_in, mode_out, freq, s):
+        self.idx_in = idx_in
+        self.idx_out = idx_out
+        self.mode_in = mode_in
+        self.mode_out = mode_out
+        self.freq = freq
+        self.s = s
+    
+    @property
+    def label(self):
+        return f"S{self.idx_out}{self.idx_in}"

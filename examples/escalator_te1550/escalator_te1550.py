@@ -49,7 +49,12 @@ bounds = gtd.lyprocessor.load_region(
 
 # load the silicon structures in the device in layer (1,0)
 device_si = gtd.lyprocessor.load_structure(
-    layout, name="Si", layer=[1, 0], z_base=0, z_span=thickness_si, material=mat_si
+    layout,
+    name="Si",
+    layer=[1, 0],
+    z_base=0,
+    z_span=thickness_si,
+    material=mat_si
 )
 
 device_sin = gtd.lyprocessor.load_structure(
