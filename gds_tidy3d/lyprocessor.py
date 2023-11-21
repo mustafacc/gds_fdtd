@@ -1,5 +1,5 @@
 """
-SiEPIC-Tidy3D integration toolbox.
+GDS_Tidy3D integration toolbox.
 
 Layout processing module.
 @author: Mustafa Hammood, 2023

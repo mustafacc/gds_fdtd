@@ -1,4 +1,4 @@
-"""Top-level package imports."""
+"""GDS_Tidy3D Top-level package imports."""
 from . import core, lyprocessor, simprocessor
 
 __author__ = """Mustafa Hammood"""
