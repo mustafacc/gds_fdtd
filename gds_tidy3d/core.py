@@ -128,7 +128,7 @@ class component:
                 if type(s) == list:
                     for poly in s:
                         if is_point_inside_polygon(p.center[:2], poly.polygon):
-                            p.center[2] = s[0].z_base + s[0].z_span/2
+                            p.center[2] = s[0].z_base + s[0].z_span / 2
                             p.height = s[0].z_span
                             p.material = s[0].material
         return
@@ -149,6 +149,7 @@ class Simulation:
 
     def upload(self):
         from tidy3d import web
+
         self.job = web.Job(simulation=self.sim, task_name=self.device.name)
 
     def execute(self):
@@ -184,11 +185,6 @@ class Simulation:
 
             return amps
 
-        def get_field_monitor_z():
-            for i in self.results.simulation.monitors:
-                if i.type == "FieldMonitor":
-                    return i.center[2]
-
         ports = self.device.ports
         amps_arms = measure_transmission(ports, np.size(ports))
         print("mode amplitudes in each port: \n")
@@ -208,11 +204,12 @@ class Simulation:
         fig.legend()
 
         fig, ax = plt.subplots(1, 1, figsize=(16, 3))
+
         self.results.plot_field(
             "field",
             "Ey",
-            z=get_field_monitor_z(self.results),
             freq=td.C_0 / ((self.wavl_max + self.wavl_min) / 2),
             ax=ax,
         )
+
         plt.show()

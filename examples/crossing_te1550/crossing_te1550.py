@@ -73,13 +73,12 @@ simulation = gtd.simprocessor.make_sim(
     wavl_pts=wavl_pts,
     symmetry=symmetry,
     z_span=z_span,
-    field_monitor_axis=None,
+    field_monitor_axis='z',
 )
 # %% upload and run the simulation
 # create job, upload sim to server to begin running
 simulation.upload()
 # %% run the simulation. CHECK THE SIMULATION IN THE UI BEFORE RUNNING!
 simulation.execute()
-
 # %% visualize the results
 simulation.visualize_results()
