@@ -77,10 +77,9 @@ simulation = gtd.simprocessor.make_sim(
 )
 # %% upload and run the simulation
 # create job, upload sim to server to begin running
-job = web.Job(simulation=simulation.sim, task_name=fname_gds.removesuffix(".gds"))
-
+simulation.upload()
 # %% run the simulation. CHECK THE SIMULATION IN THE UI BEFORE RUNNING!
-simulation.results = job.run(path=f"{fname_gds.removesuffix('.gds')}/sim_data.hdf5")
+simulation.execute()
 
 # %% visualize the results
 simulation.visualize_results()

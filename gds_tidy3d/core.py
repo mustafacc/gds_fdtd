@@ -1,5 +1,5 @@
 """
-SiEPIC-Tidy3D integration toolbox.
+GDS_Tidy3D integration toolbox.
 
 Core objects module.
 @author: Mustafa Hammood, 2023
@@ -144,7 +144,15 @@ class Simulation:
         self.wavl_max = wavl_max
         self.wavl_pts = wavl_pts
         self.sim = sim
+        self.job = None
         self.results = None
+
+    def upload(self):
+        from tidy3d import web
+        self.job = web.Job(simulation=self.sim, task_name=self.device.name)
+
+    def execute(self):
+        self.results = self.job.run(path=f"{self.device.name}/sim_data.hdf5")
 
     def visualize_results(self):
         import matplotlib.pyplot as plt
