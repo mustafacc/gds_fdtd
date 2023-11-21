@@ -22,7 +22,7 @@ def make_source(
         buffer (float, optional): Distance between edge of simulation and source. Defaults to 0.1 microns.
 
     Returns:
-        _type_: _description_
+        td.ModeSource: Generated source.
     """
     import tidy3d as td
 
