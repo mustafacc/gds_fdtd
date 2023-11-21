@@ -168,12 +168,17 @@ class Simulation:
                     directions.append("-")
             return tuple(directions)
 
+        def get_source_direction(port):
+            if port.direction in [0, 90]:
+                return "-"
+            else:
+                return "+"
         def get_port_name(port):
             return [int(i) for i in port if i.isdigit()][0]
 
         def measure_transmission(ports, num_ports):
-            """Constructs a "row" of the scattering matrix when sourced from top left port"""
-            input_amp = self.results[self.in_port.name].amps.sel(direction="+")
+            """Constructs a "row" of the scattering matrix"""
+            input_amp = self.results[self.in_port.name].amps.sel(direction=get_source_direction(self.in_port))
             amps = np.zeros((num_ports, self.wavl_pts), dtype=complex)
             directions = get_directions(ports)
             for i, (monitor, direction) in enumerate(

@@ -4,7 +4,6 @@
 @author: Mustafa Hammood
 """
 import tidy3d as td
-from tidy3d import web
 import gds_tidy3d as gtd
 
 fname_gds = "escalator_te1550.gds"

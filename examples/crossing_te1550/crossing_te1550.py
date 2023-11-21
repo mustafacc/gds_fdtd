@@ -4,7 +4,6 @@
 @author: Mustafa Hammood
 """
 import tidy3d as td
-from tidy3d import web
 import gds_tidy3d as gtd
 
 fname_gds = "crossing_te1550.gds"
@@ -72,6 +71,7 @@ simulation = gtd.simprocessor.make_sim(
     wavl_max=wavl_max,
     wavl_pts=wavl_pts,
     symmetry=symmetry,
+    in_port=device.ports[1],
     z_span=z_span,
     field_monitor_axis='z',
 )
@@ -82,3 +82,5 @@ simulation.upload()
 simulation.execute()
 # %% visualize the results
 simulation.visualize_results()
+
+# %%
