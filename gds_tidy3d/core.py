@@ -203,12 +203,12 @@ class Simulation:
             print(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
             self.s_parameters.add_param(
                 sparam(
-                idx_in = self.in_port.idx,
-                idx_out = get_port_name(monitor.name),
-                mode_in = 1,
-                mode_out = 1,
-                freq = td.C_0/wavl,
-                s = amp
+                    idx_in=self.in_port.idx,
+                    idx_out=get_port_name(monitor.name),
+                    mode_in=1,
+                    mode_out=1,
+                    freq=td.C_0 / wavl,
+                    s=amp,
                 )
             )
 
@@ -217,20 +217,23 @@ class Simulation:
 
         self.s_parameters.plot()
 
-        fig, ax = plt.subplots(1, 1, figsize=(16, 3))
-        self.results.plot_field(
-            "field",
-            "Ey",
-            freq=td.C_0 / ((self.wavl_max + self.wavl_min) / 2),
-            ax=ax,
-        )
-
-        plt.show()
+        try:
+            fig, ax = plt.subplots(1, 1, figsize=(16, 3))
+            self.results.plot_field(
+                "field",
+                "Ey",
+                freq=td.C_0 / ((self.wavl_max + self.wavl_min) / 2),
+                ax=ax,
+            )
+            plt.show()
+        except:
+            return
 
 
 class s_parameters:
-    def __init__(self, entries=[]):
-        self.entries = entries
+    def __init__(self, entries=None):
+        if entries is None:
+            self.entries = []
         return
 
     def add_param(self, sparam):
@@ -246,8 +249,8 @@ class s_parameters:
         for i in self.entries:
             print("mode amplitudes in each port: \n")
             mag = [10 * np.log10(abs(i) ** 2) for i in i.s]
-            phase = [np.angle(i)**2 for i in i.s]
-            ax.plot(td.C_0/i.freq, mag, label=i.label)
+            phase = [np.angle(i) ** 2 for i in i.s]
+            ax.plot(td.C_0 / i.freq, mag, label=i.label)
             fig.legend()
 
 
@@ -259,7 +262,7 @@ class sparam:
         self.mode_out = mode_out
         self.freq = freq
         self.s = s
-    
+
     @property
     def label(self):
         return f"S{self.idx_out}{self.idx_in}"
