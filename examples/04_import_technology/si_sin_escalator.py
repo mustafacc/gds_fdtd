@@ -11,7 +11,7 @@ if __name__ == "__main__":
     tech_path = "tech.yaml"
     technology = gtd.core.parse_yaml_tech(tech_path)
 
-    fname_gds = "crossing_te1550.gds"
+    fname_gds = "si_sin_escalator.gds"
     layout = gtd.lyprocessor.load_layout(fname_gds)
 
     simulation = gtd.simprocessor.build_sim_from_tech(
@@ -21,12 +21,14 @@ if __name__ == "__main__":
         wavl_min=1.5,
         wavl_max=1.6,
         wavl_pts=101,
-        symmetry=(0, 0, 1),  # ensure structure is symmetric across symmetry axis before triggering this!
+        symmetry=(0, 0, 0),  # ensure structure is symmetric across symmetry axis before triggering this!
         z_span=4,
-        field_monitor_axis="z",
+        field_monitor_axis="y",
     )
     simulation.upload()
     # run the simulation. CHECK THE SIMULATION IN THE UI BEFORE RUNNING!
     simulation.execute()
     #  visualize the results
     simulation.visualize_results()
+
+# %%

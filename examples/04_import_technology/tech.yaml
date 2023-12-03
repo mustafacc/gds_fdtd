@@ -27,9 +27,9 @@ technology:
       material: [cSi, Li1993_293K]
       sidewall_angle: 85
 
-    - layer: [2, 0]
-      z_base: .32
-      z_span: 0.4
+    - layer: [1, 5]
+      z_base: .3
+      z_span: 0.22
       material_type: tidy3d_db
-      material: [cSi, Li1993_293K]
+      material: [Si3N4, Philipp1973Sellmeier]
       sidewall_angle: 80
