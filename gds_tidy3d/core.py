@@ -266,3 +266,67 @@ class sparam:
     @property
     def label(self):
         return f"S{self.idx_out}{self.idx_in}"
+
+
+def parse_yaml_tech(file_path):
+    import yaml
+
+    with open(file_path, "r") as file:
+        data = yaml.safe_load(file)
+
+    technology = data.get("technology", {})
+    parsed_data = {
+        "name": technology.get("name", "Unknown"),
+        "substrate": [],
+        "superstrate": [],
+        "pinrec": [],
+        "devrec": [],
+        "device": [],
+    }
+
+    # Parsing substrate layer
+    substrate = technology.get("substrate", {})
+    parsed_data["substrate"].append(
+        {
+            "z_base": substrate.get("z_base"),
+            "z_span": substrate.get("z_span"),
+            "material_type": substrate.get("material_type"),
+            "material": substrate.get("material"),
+        }
+    )
+
+    # Parsing superstrate layer
+    superstrate = technology.get("superstrate", {})
+    parsed_data["superstrate"].append(
+        {
+            "z_base": superstrate.get("z_base"),
+            "z_span": superstrate.get("z_span"),
+            "material_type": superstrate.get("material_type"),
+            "material": superstrate.get("material"),
+        }
+    )
+
+    # Parsing pinrec layers
+    parsed_data["pinrec"] = [
+        {"layer": pinrec.get("layer")} for pinrec in technology.get("pinrec", [])
+    ]
+
+    # Parsing devrec layers
+    parsed_data["devrec"] = [
+        {"layer": devrec.get("layer")} for devrec in technology.get("devrec", [])
+    ]
+
+    # Parsing device layers
+    parsed_data["device"] = [
+        {
+            "layer": device.get("layer"),
+            "z_base": device.get("z_base"),
+            "z_span": device.get("z_span"),
+            "material_type": device.get("material_type"),
+            "material": device.get("material"),
+            "sidewall_angle": device.get("sidewall_angle"),
+        }
+        for device in technology.get("device", [])
+    ]
+
+    return parsed_data

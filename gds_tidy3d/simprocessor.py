@@ -371,3 +371,80 @@ def make_sim(
         ax2.set_xlim([-device.bounds.x_span / 2, device.bounds.y_span / 2])
         plt.show()
     return simulation
+
+
+def get_material(device):
+    if device["material_type"] == "tidy3d_db":
+        return td.material_library[device["material"][0]][device["material"][1]]
+    elif device["material_type"] == "nk":
+        return td.Medium(permittivity=device["material"] ** 2)
+
+
+def build_sim_from_tech(tech, layout, in_port=0, **kwargs):
+    from .core import component
+    from .lyprocessor import (
+        load_structure,
+        load_region,
+        load_ports,
+        load_structure_from_bounds,
+    )
+    import numpy as np
+
+    # load the structures in the device
+    device_wg = []
+    for idx, d in enumerate(tech["device"]):
+        device_wg.append(
+            load_structure(
+                layout,
+                name=f"dev_{idx}",
+                layer=d["layer"],
+                z_base=d["z_base"],
+                z_span=d["z_span"],
+                material=get_material(d),
+            )
+        )
+    # Removing empty lists due to no structures existing in an input layer
+    device_wg = [dev for dev in device_wg if dev]
+
+    # get z_center based on structures center (minimize symmetry failures)
+    z_center = np.average([d.z_base + d.z_span / 2 for d in device_wg[0]])
+    z_span = kwargs.pop("z_span", 4)  # Default value 4 if z_span is not provided
+
+    # load all the ports in the device and (optional) initialize each to have a center
+    ports = load_ports(layout, layer=tech["pinrec"][0]["layer"])
+    # load the device simulation region
+    bounds = load_region(
+        layout, layer=tech["devrec"][0]["layer"], z_center=z_center, z_span=z_span
+    )
+
+    # make the superstrate and substrate based on device bounds
+    # this information isn't typically captured in a 2D layer stack
+    device_super = load_structure_from_bounds(
+        bounds,
+        name="Superstrate",
+        z_base=tech["superstrate"][0]["z_base"],
+        z_span=tech["superstrate"][0]["z_span"],
+        material=get_material(tech["superstrate"][0]),
+    )
+    device_sub = load_structure_from_bounds(
+        bounds,
+        name="Subtrate",
+        z_base=tech["substrate"][0]["z_base"],
+        z_span=tech["substrate"][0]["z_span"],
+        material=get_material(tech["substrate"][0]),
+    )
+
+    # create the device by loading the structures
+    device = component(
+        name=layout.name,
+        structures=[device_sub, device_super] + device_wg,
+        ports=ports,
+        bounds=bounds,
+    )
+
+    return make_sim(
+        device=device,
+        in_port=device.ports[in_port],
+        z_span=z_span,
+        **kwargs,
+    )
