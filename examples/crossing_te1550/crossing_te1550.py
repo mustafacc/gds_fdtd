@@ -29,6 +29,7 @@ wavl_max = 1.65  # simulation wavelength end (microns)
 wavl_pts = 101
 
 # define symmetry across Z axis (TE mode) - set to -1 for anti symmetric
+# warning: ensure structure is symmetric across symmetry axis!
 symmetry = (0, 0, 1)
 
 # %% load and process the layout file
