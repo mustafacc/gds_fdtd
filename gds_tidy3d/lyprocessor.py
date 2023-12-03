@@ -8,6 +8,7 @@ Layout processing module.
 from .core import layout, port, structure, region
 import logging
 
+
 def dilate(vertices, extension=1):
     import numpy as np
 
@@ -29,7 +30,6 @@ def load_layout(fname):
         raise ValueError("More than one top cell found, ensure only 1 top cell exists.")
     else:
         cell = ly.top_cell()
-        print('hi')
         name = cell.name
     return layout(name, ly, cell)
 
@@ -137,7 +137,20 @@ def load_structure(layout, name, layer, z_base, z_span, material, sidewall_angle
     return structures
 
 
-def load_structure_from_bounds(bounds, name, z_base, z_span, material, extension=2):
+def load_structure_from_bounds(bounds, name, z_base, z_span, material, extension=2.0):
+    """Load a structure from a region definition
+
+    Args:
+        bounds (core.region): Input region to use to generate structure.
+        name (_type_): Name of structure.
+        z_base (float): Z base of structure.
+        z_span (float): Z span (thickness) of structure, can be negative for downward growth.
+        material (tidy3d.Medium): Material of structure
+        extension (float, optional): Growth (or shrinkage), in um, of structure defintion relative to bounds. Defaults to 2 um.
+
+    Returns:
+        core.structure: Structure generated from input region.
+    """
     return structure(
         name=name,
         polygon=dilate(bounds.vertices, extension=extension),
