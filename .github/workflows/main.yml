@@ -38,9 +38,6 @@ jobs:
     # Step 5: Upload coverage reports to Codecov
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}  # Your Codecov token
-        file: ./coverage.xml  # Adjust the path to your coverage report file if different
-        flags: unittests  # Optional flags
-        name: codecov-umbrella  # Optional name
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
