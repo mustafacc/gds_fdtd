@@ -8,10 +8,8 @@ import tidy3d as td
 
 
 if __name__ == "__main__":
-    # Example usage
-    file_path = "tech.yaml"
-    technology = gtd.core.parse_yaml_tech(file_path)
-    print(technology)
+    tech_path = "tech.yaml"
+    technology = gtd.core.parse_yaml_tech(tech_path)
 
     fname_gds = "crossing_te1550.gds"
     layout = gtd.lyprocessor.load_layout(fname_gds)
@@ -23,7 +21,7 @@ if __name__ == "__main__":
         wavl_min=1.5,
         wavl_max=1.6,
         wavl_pts=101,
-        symmetry=(0, 0, 1),  # ensure structure is symmetric across symmetry axis!
+        symmetry=(0, 0, 1),  # ensure structure is symmetric across symmetry axis before triggering this!
         z_span=4,
         field_monitor_axis="z",
     )
