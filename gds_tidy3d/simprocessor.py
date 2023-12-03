@@ -407,7 +407,7 @@ def build_sim_from_tech(tech, layout, in_port=0, **kwargs):
     device_wg = [dev for dev in device_wg if dev]
 
     # get z_center based on structures center (minimize symmetry failures)
-    z_center = np.average([d.z_base + d.z_span / 2 for d in device_wg[0]])
+    z_center = np.average([d[0].z_base + d[0].z_span / 2 for d in device_wg])
     z_span = kwargs.pop("z_span", 4)  # Default value 4 if z_span is not provided
 
     # load all the ports in the device and (optional) initialize each to have a center

@@ -6,7 +6,7 @@ Layout processing module.
 """
 
 from .core import layout, port, structure, region
-
+import logging
 
 def dilate(vertices, extension=1):
     import numpy as np
@@ -25,6 +25,7 @@ def load_layout(fname):
     ly = pya.Layout()
     ly.read(fname)
     if ly.cells() > 1:
+        logging.error("More than one top cell found, ensure only 1 top cell exists.")
         ValueError("More than one top cell found, ensure only 1 top cell exists.")
     else:
         cell = ly.top_cell()

@@ -5,7 +5,7 @@ Core objects module.
 @author: Mustafa Hammood, 2023
 """
 import tidy3d as td
-
+import logging
 
 def is_point_inside_polygon(point, polygon_points):
     """Identify if a point inside a polygon using Shapely.
@@ -131,6 +131,8 @@ class component:
                             p.center[2] = s[0].z_base + s[0].z_span / 2
                             p.height = s[0].z_span
                             p.material = s[0].material
+            if p.height == None:
+                logging.warning(f"Cannot find height for port {p.name}")
         return
 
 
@@ -194,13 +196,13 @@ class Simulation:
 
         amps_arms = measure_transmission()
 
-        print("mode amplitudes in each port: \n")
+        logging.info("Mode amplitudes in each port: \n")
         wavl = np.linspace(self.wavl_min, self.wavl_max, self.wavl_pts)
         self.s_parameters = s_parameters()
         for amp, monitor in zip(amps_arms, self.results.simulation.monitors):
-            print(f'\tmonitor     = "{monitor.name}"')
-            print(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
-            print(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
+            logging.info(f'\tmonitor     = "{monitor.name}"')
+            logging.info(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
+            logging.info(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
             self.s_parameters.add_param(
                 sparam(
                     idx_in=self.in_port.idx,
@@ -247,7 +249,7 @@ class s_parameters:
         ax.set_xlabel("Wavelength [microns]")
         ax.set_ylabel("Transmission [dB]")
         for i in self.entries:
-            print("mode amplitudes in each port: \n")
+            logging.info("Mode amplitudes in each port: \n")
             mag = [10 * np.log10(abs(i) ** 2) for i in i.s]
             phase = [np.angle(i) ** 2 for i in i.s]
             ax.plot(td.C_0 / i.freq, mag, label=i.label)
