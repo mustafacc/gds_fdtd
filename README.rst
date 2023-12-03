@@ -1,6 +1,8 @@
 ==========
 gds_tidy3d
 ==========
+.. image:: /docs/banner.png
+        :alt: alternative text
 
 
 .. image:: https://img.shields.io/pypi/v/gds_tidy3d.svg
@@ -19,19 +21,8 @@ gds_tidy3d
 Minimal Python module to assist in setting up Tidy3D FDTD simulation on planar nanophotonic devices.
 
 
-* Free software: MIT license
-* Documentation: https://gds-tidy3d.readthedocs.io.
-
-
 Features
 --------
-
-* TODO
-
-Credits
--------
-
-This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
-
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+* Generate tidy3d simulation of a gds device systematically.
+* Generate tidy3d simulations from GDS device by identifying ports and simulation region from an input technology stack.
+* Generate S-parameters of devices and export them to standard formats.
