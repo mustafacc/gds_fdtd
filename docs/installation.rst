@@ -12,7 +12,7 @@ To install gds_tidy3d, run this command in your terminal:
 
 .. code-block:: console
 
-    $ pip install gds_tidy3d
+    $ pip install -e .[dev]
 
 This is the preferred method to install gds_tidy3d, as it will always install the most recent stable release.
 
