@@ -132,7 +132,7 @@ def test_dilate_with_default_extension():
 
 
 def test_load_layout_with_single_top_cell():
-    test_file = "tests/si_sin_escalator.gds"  # Replace with actual path
+    test_file = os.path.join(os.path.dirname(__file__), "si_sin_escalator.gds")
     result = lyprocessor.load_layout(test_file)
 
     assert isinstance(result, core.layout)  # Assuming layout is a class
@@ -143,7 +143,7 @@ def test_load_layout_with_single_top_cell():
 
 
 def test_load_layout_with_multiple_top_cells():
-    test_file = "tests/bad_topcells.gds"  # Replace with actual path
+    test_file = os.path.join(os.path.dirname(__file__), "bad_topcells.gds")
 
     with pytest.raises(ValueError) as excinfo:
         lyprocessor.load_layout(test_file)
@@ -152,7 +152,7 @@ def test_load_layout_with_multiple_top_cells():
 
 
 def test_load_region():
-    test_file = "tests/si_sin_escalator.gds"  # Replace with actual path
+    test_file = os.path.join(os.path.dirname(__file__), "si_sin_escalator.gds")
     layout = lyprocessor.load_layout(test_file)
     region = lyprocessor.load_region(layout=layout, layer=[68, 0])
     assert region.y_center == 0
@@ -160,7 +160,7 @@ def test_load_region():
 
 
 def test_load_structure():
-    test_file = "tests/si_sin_escalator.gds"  # Replace with actual path
+    test_file = os.path.join(os.path.dirname(__file__), "si_sin_escalator.gds")
     layout = lyprocessor.load_layout(test_file)
     device_si = lyprocessor.load_structure(
         layout,
@@ -176,7 +176,7 @@ def test_load_structure():
 
 
 def test_load_structure_from_bounds():
-    test_file = "tests/si_sin_escalator.gds"  # Replace with actual path
+    test_file = os.path.join(os.path.dirname(__file__), "si_sin_escalator.gds")
     layout = lyprocessor.load_layout(test_file)
 
     bounds = lyprocessor.load_region(layout, layer=[68, 0], z_center=0 / 2, z_span=4)
@@ -189,20 +189,24 @@ def test_load_structure_from_bounds():
         material=td.Medium(permittivity=1.48**2),
     )
     assert isinstance(device_super, core.structure)
-    assert device_super.sidewall_angle == 90  # angle is always supposed to be 90 from structure from bounds
+    assert (
+        device_super.sidewall_angle == 90
+    )  # angle is always supposed to be 90 from structure from bounds
+
 
 def test_load_ports():
-    test_file = "tests/si_sin_escalator.gds"  # Replace with actual path
+    test_file = os.path.join(os.path.dirname(__file__), "si_sin_escalator.gds")
     layout = lyprocessor.load_layout(test_file)
     ports_si = lyprocessor.load_ports(layout, layer=[1, 10])
 
     assert len(ports_si) == 2
-    assert ports_si[0].name == 'opt1'
-    assert ports_si[0].width == .5
+    assert ports_si[0].name == "opt1"
+    assert ports_si[0].width == 0.5
     assert all(p.y == 0 for p in ports_si)
 
+
 def test_make_source():
-    test_file = "tests/si_sin_escalator.gds"  # Replace with actual path
+    test_file = os.path.join(os.path.dirname(__file__), "si_sin_escalator.gds")
     layout = lyprocessor.load_layout(test_file)
     ports_si = lyprocessor.load_ports(layout, layer=[1, 10])
     for p in ports_si:
@@ -217,17 +221,16 @@ def test_make_source():
     assert isinstance(source, td.ModeSource)
     assert source.mode_index == 0
 
+
 def test_make_structure():
-    test_file = "tests/si_sin_escalator.gds"  # Replace with actual path
+    test_file = os.path.join(os.path.dirname(__file__), "si_sin_escalator.gds")
     layout = lyprocessor.load_layout(test_file)
 
     # load all the ports in the device and (optional) initialize each to have a center
     ports = lyprocessor.load_ports(layout, layer=[1, 10])
 
     # load the device simulation region
-    bounds = lyprocessor.load_region(
-        layout, layer=[68, 0], z_center=.22 / 2, z_span=4
-    )
+    bounds = lyprocessor.load_region(layout, layer=[68, 0], z_center=0.22 / 2, z_span=4)
 
     # load the silicon structures in the device in layer (1,0)
     device_si = lyprocessor.load_structure(
@@ -235,8 +238,8 @@ def test_make_structure():
         name="Si",
         layer=[1, 0],
         z_base=0,
-        z_span=.22,
-        material=td.material_library["cSi"]["Li1993_293K"]
+        z_span=0.22,
+        material=td.material_library["cSi"]["Li1993_293K"],
     )
 
     # load the silicon structures in the device in layer (1,0)
@@ -244,38 +247,45 @@ def test_make_structure():
         layout,
         name="SiN",
         layer=[1, 5],
-        z_base=.3,
-        z_span=.22,
-        material=td.material_library["cSi"]["Li1993_293K"]
+        z_base=0.3,
+        z_span=0.22,
+        material=td.material_library["cSi"]["Li1993_293K"],
     )
 
     device_super = lyprocessor.load_structure_from_bounds(
-        bounds, name="Superstrate", z_base=0, z_span=2, material=td.Medium(permittivity=1.48**2)
+        bounds,
+        name="Superstrate",
+        z_base=0,
+        z_span=2,
+        material=td.Medium(permittivity=1.48**2),
     )
     device_sub = lyprocessor.load_structure_from_bounds(
-        bounds, name="Substrate", z_base=0, z_span=-3, material=td.Medium(permittivity=1.48**2)
+        bounds,
+        name="Substrate",
+        z_base=0,
+        z_span=-3,
+        material=td.Medium(permittivity=1.48**2),
     )
     # create the device by loading the structures
     device = core.component(
         name=layout.name,
-        structures= [device_sub, device_super, device_si, device_sin],
+        structures=[device_sub, device_super, device_si, device_sin],
         ports=ports,
         bounds=bounds,
     )
     # define structures from device
     structures = simprocessor.make_structures(device)
 
+
 def test_make_port_monitor():
-    test_file = "tests/si_sin_escalator.gds"  # Replace with actual path
+    test_file = os.path.join(os.path.dirname(__file__), "si_sin_escalator.gds")
     layout = lyprocessor.load_layout(test_file)
 
     # load all the ports in the device and (optional) initialize each to have a center
     ports = lyprocessor.load_ports(layout, layer=[1, 10])
 
     # load the device simulation region
-    bounds = lyprocessor.load_region(
-        layout, layer=[68, 0], z_center=.22 / 2, z_span=4
-    )
+    bounds = lyprocessor.load_region(layout, layer=[68, 0], z_center=0.22 / 2, z_span=4)
 
     # load the silicon structures in the device in layer (1,0)
     device_si = lyprocessor.load_structure(
@@ -283,8 +293,8 @@ def test_make_port_monitor():
         name="Si",
         layer=[1, 0],
         z_base=0,
-        z_span=.22,
-        material=td.material_library["cSi"]["Li1993_293K"]
+        z_span=0.22,
+        material=td.material_library["cSi"]["Li1993_293K"],
     )
 
     # load the silicon structures in the device in layer (1,0)
@@ -292,21 +302,29 @@ def test_make_port_monitor():
         layout,
         name="SiN",
         layer=[1, 5],
-        z_base=.3,
-        z_span=.22,
-        material=td.material_library["cSi"]["Li1993_293K"]
+        z_base=0.3,
+        z_span=0.22,
+        material=td.material_library["cSi"]["Li1993_293K"],
     )
 
     device_super = lyprocessor.load_structure_from_bounds(
-        bounds, name="Superstrate", z_base=0, z_span=2, material=td.Medium(permittivity=1.48**2)
+        bounds,
+        name="Superstrate",
+        z_base=0,
+        z_span=2,
+        material=td.Medium(permittivity=1.48**2),
     )
     device_sub = lyprocessor.load_structure_from_bounds(
-        bounds, name="Substrate", z_base=0, z_span=-3, material=td.Medium(permittivity=1.48**2)
+        bounds,
+        name="Substrate",
+        z_base=0,
+        z_span=-3,
+        material=td.Medium(permittivity=1.48**2),
     )
     # create the device by loading the structures
     device = core.component(
         name=layout.name,
-        structures= [device_sub, device_super, device_si, device_sin],
+        structures=[device_sub, device_super, device_si, device_sin],
         ports=ports,
         bounds=bounds,
     )
@@ -322,7 +340,199 @@ def test_make_port_monitor():
             )
         )
     assert isinstance(monitors[0].mode_spec, td.ModeSpec)
-    assert all(m.name.startswith('opt') for m in monitors)
+    assert all(m.name.startswith("opt") for m in monitors)
+
+
+def test_make_field_monitor():
+    test_file = os.path.join(os.path.dirname(__file__), "si_sin_escalator.gds")
+    layout = lyprocessor.load_layout(test_file)
+
+    # load all the ports in the device and (optional) initialize each to have a center
+    ports = lyprocessor.load_ports(layout, layer=[1, 10])
+
+    # load the device simulation region
+    bounds = lyprocessor.load_region(layout, layer=[68, 0], z_center=0.22 / 2, z_span=4)
+
+    # load the silicon structures in the device in layer (1,0)
+    device_si = lyprocessor.load_structure(
+        layout,
+        name="Si",
+        layer=[1, 0],
+        z_base=0,
+        z_span=0.22,
+        material=td.material_library["cSi"]["Li1993_293K"],
+    )
+
+    # load the silicon structures in the device in layer (1,0)
+    device_sin = lyprocessor.load_structure(
+        layout,
+        name="SiN",
+        layer=[1, 5],
+        z_base=0.3,
+        z_span=0.22,
+        material=td.material_library["cSi"]["Li1993_293K"],
+    )
+
+    device_super = lyprocessor.load_structure_from_bounds(
+        bounds,
+        name="Superstrate",
+        z_base=0,
+        z_span=2,
+        material=td.Medium(permittivity=1.48**2),
+    )
+    device_sub = lyprocessor.load_structure_from_bounds(
+        bounds,
+        name="Substrate",
+        z_base=0,
+        z_span=-3,
+        material=td.Medium(permittivity=1.48**2),
+    )
+    # create the device by loading the structures
+    device = core.component(
+        name=layout.name,
+        structures=[device_sub, device_super, device_si, device_sin],
+        ports=ports,
+        bounds=bounds,
+    )
+
+    # define monitors
+    monitor = simprocessor.make_field_monitor(device, freqs=td.C_0 / 1.55, axis="z")
+
+    assert isinstance(monitor, td.FieldMonitor)
+
+
+def test_make_sim():
+    test_file = os.path.join(os.path.dirname(__file__), "si_sin_escalator.gds")
+    layout = lyprocessor.load_layout(test_file)
+
+    # load all the ports in the device and (optional) initialize each to have a center
+    ports = lyprocessor.load_ports(layout, layer=[1, 10])
+
+    # load the device simulation region
+    bounds = lyprocessor.load_region(layout, layer=[68, 0], z_center=0.22 / 2, z_span=4)
+
+    # load the silicon structures in the device in layer (1,0)
+    device_si = lyprocessor.load_structure(
+        layout,
+        name="Si",
+        layer=[1, 0],
+        z_base=0,
+        z_span=0.22,
+        material=td.material_library["cSi"]["Li1993_293K"],
+    )
+
+    # load the silicon structures in the device in layer (1,0)
+    device_sin = lyprocessor.load_structure(
+        layout,
+        name="SiN",
+        layer=[1, 5],
+        z_base=0.3,
+        z_span=0.22,
+        material=td.material_library["cSi"]["Li1993_293K"],
+    )
+
+    device_super = lyprocessor.load_structure_from_bounds(
+        bounds,
+        name="Superstrate",
+        z_base=0,
+        z_span=2,
+        material=td.Medium(permittivity=1.48**2),
+    )
+    device_sub = lyprocessor.load_structure_from_bounds(
+        bounds,
+        name="Substrate",
+        z_base=0,
+        z_span=-3,
+        material=td.Medium(permittivity=1.48**2),
+    )
+    # create the device by loading the structures
+    device = core.component(
+        name=layout.name,
+        structures=[device_sub, device_super, device_si, device_sin],
+        ports=ports,
+        bounds=bounds,
+    )
+
+    # define structures from device
+    structures = simprocessor.make_structures(device)
+
+    # define monitors
+    monitors = []
+    for p in device.ports:
+        monitors.append(
+            simprocessor.make_port_monitor(
+                p,
+                freqs=td.C_0 / np.linspace(1.5, 1.6, 101),
+                depth=2,
+                width=3,
+            )
+        )
+    monitors.append(
+        simprocessor.make_field_monitor(device, freqs=td.C_0 / 1.55, axis="z")
+    )
+
+    # simulation domain size (in microns)
+    sim_size = [device.bounds.x_span, device.bounds.y_span, device.bounds.z_span]
+
+    run_time = 50 * max(sim_size) / td.C_0  # 85/fwidth  # sim. time in secs
+
+    source = simprocessor.make_source(port=device.ports[0])
+    # initialize the simulation
+    simulation = core.Simulation(
+        in_port=device.ports[0],
+        wavl_max=1.6,
+        wavl_min=1.5,
+        wavl_pts=101,
+        device=device,
+        sim=td.Simulation(
+            size=sim_size,
+            grid_spec=td.GridSpec.auto(min_steps_per_wvl=18, wavelength=1.55),
+            structures=structures,
+            sources=[source],
+            monitors=monitors,
+            run_time=run_time,
+            boundary_spec=td.BoundarySpec.all_sides(boundary=td.PML()),
+            center=(
+                device.bounds.x_center,
+                device.bounds.y_center,
+                device.bounds.z_center,
+            ),
+            symmetry=(0, 0, 0),
+        ),
+    )
+
+
+def test_get_material():
+    file_path = os.path.join(os.path.dirname(__file__), "tech.yaml")
+    device = core.parse_yaml_tech(file_path)
+    assert isinstance(simprocessor.get_material(device["substrate"][0]), td.Medium)
+    assert isinstance(simprocessor.get_material(device["device"][0]), td.PoleResidue)
+
+
+def test_build_sim_from_tech():
+    tech_path = os.path.join(os.path.dirname(__file__), "tech.yaml")
+    technology = core.parse_yaml_tech(tech_path)
+
+    fname_gds = os.path.join(os.path.dirname(__file__), "si_sin_escalator.gds")
+    layout = lyprocessor.load_layout(fname_gds)
+
+    simulation = simprocessor.build_sim_from_tech(
+        tech=technology,
+        layout=layout,
+        in_port=0,
+        wavl_min=1.5,
+        wavl_max=1.6,
+        wavl_pts=101,
+        symmetry=(
+            0,
+            0,
+            0,
+        ),  # ensure structure is symmetric across symmetry axis before triggering this!
+        z_span=4,
+        field_monitor_axis="y",
+        visualize=False,
+    )
+
 
 if __name__ == "__main__":
     pytest.main([__file__])
