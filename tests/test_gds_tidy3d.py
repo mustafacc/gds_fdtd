@@ -3,7 +3,7 @@
 """Tests for `gds_tidy3d` package."""
 
 import pytest
-import pya
+import klayout.db as pya
 import os
 import numpy as np
 from gds_tidy3d import core, lyprocessor
