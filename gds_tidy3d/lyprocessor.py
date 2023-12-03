@@ -26,9 +26,10 @@ def load_layout(fname):
     ly.read(fname)
     if ly.cells() > 1:
         logging.error("More than one top cell found, ensure only 1 top cell exists.")
-        ValueError("More than one top cell found, ensure only 1 top cell exists.")
+        raise ValueError("More than one top cell found, ensure only 1 top cell exists.")
     else:
         cell = ly.top_cell()
+        print('hi')
         name = cell.name
     return layout(name, ly, cell)
 
