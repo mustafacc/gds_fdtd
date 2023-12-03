@@ -1,5 +1,8 @@
-# %%
-import yaml
+# %%!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+@author: Mustafa Hammood
+"""
 import gds_tidy3d as gtd
 import tidy3d as td
 
@@ -24,4 +27,8 @@ if __name__ == "__main__":
         z_span=4,
         field_monitor_axis="z",
     )
-# %%
+    simulation.upload()
+    # run the simulation. CHECK THE SIMULATION IN THE UI BEFORE RUNNING!
+    simulation.execute()
+    #  visualize the results
+    simulation.visualize_results()
