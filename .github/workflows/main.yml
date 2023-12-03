@@ -27,6 +27,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install pytest pytest-cov  # Ensure pytest and pytest-cov are installed
         if [ -f requirements_dev.txt ]; then pip install -r requirements.txt; fi
 
     # Step 4: Run tests (Modify this step according to how you run tests in your project)
