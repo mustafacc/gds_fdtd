@@ -10,3 +10,5 @@ twine==1.14.0
 
 pytest==6.2.4
 
+klayout==0.28.12
+tidy3d==2.4.1
