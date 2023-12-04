@@ -285,7 +285,9 @@ def make_sim(
     import matplotlib.pyplot as plt
 
     if in_port is None:
-        in_port = device.ports[0]
+        in_port = [device.ports[0]]
+    if not isinstance(in_port, list):
+        in_port = [in_port]
 
     lda0 = (wavl_max + wavl_min) / 2
     lda_bw = wavl_max - wavl_min
@@ -295,16 +297,6 @@ def make_sim(
 
     # define structures from device
     structures = make_structures(device)
-
-    # define source on a given port
-    source = make_source(
-        in_port,
-        depth=depth_ports,
-        width=width_ports,
-        freq0=freq0,
-        num_freqs=num_freqs,
-        fwidth=fwidth,
-    )
 
     # define monitors
     monitors = []
@@ -331,6 +323,18 @@ def make_sim(
         run_time_factor * max(sim_size) / td.C_0
     )  # 85/fwidth  # sim. time in secs
 
+    # define source on a given port
+    sources = []
+    for p in in_port:
+        sources.append(make_source(
+            port=p,
+            depth=depth_ports,
+            width=width_ports,
+            freq0=freq0,
+            num_freqs=num_freqs,
+            fwidth=fwidth,
+        ))
+
     # initialize the simulation
     simulation = Simulation(
         in_port=in_port,
@@ -338,13 +342,13 @@ def make_sim(
         wavl_min=wavl_min,
         wavl_pts=wavl_pts,
         device=device,
-        sim=td.Simulation(
+        sim=[td.Simulation(
             size=sim_size,
             grid_spec=td.GridSpec.auto(
                 min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0
             ),
             structures=structures,
-            sources=[source],
+            sources=[s],
             monitors=monitors,
             run_time=run_time,
             boundary_spec=boundary,
@@ -354,22 +358,24 @@ def make_sim(
                 device.bounds.z_center,
             ),
             symmetry=symmetry,
-        ),
+        ) for s in sources],
     )
 
     if visualize:
-        for m in simulation.sim.monitors:
-            m.help()
+        for sim in simulation.sim:
+            for m in sim.monitors:
+                m.help()
 
-        source.source_time.plot(np.linspace(0, run_time, 1001))
+        sources[0].source_time.plot(np.linspace(0, run_time, 1001))
         plt.show()
 
         # visualize geometry
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 4))
-        simulation.sim.plot(z=device.bounds.z_center, ax=ax1)
-        simulation.sim.plot(x=0.0, ax=ax2)
-        ax2.set_xlim([-device.bounds.x_span / 2, device.bounds.y_span / 2])
-        plt.show()
+        for sim in simulation.sim:
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 4))
+            sim.plot(z=device.bounds.z_center, ax=ax1)
+            sim.plot(x=0.0, ax=ax2)
+            ax2.set_xlim([-device.bounds.x_span / 2, device.bounds.y_span / 2])
+            plt.show()
     return simulation
 
 

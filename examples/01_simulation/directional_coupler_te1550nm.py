@@ -83,5 +83,3 @@ simulation.upload()
 simulation.execute()
 # %% visualize the results
 simulation.visualize_results()
-
-# %%

@@ -7,6 +7,7 @@ Core objects module.
 import tidy3d as td
 import logging
 
+
 def is_point_inside_polygon(point, polygon_points):
     """Identify if a point inside a polygon using Shapely.
 
@@ -152,7 +153,9 @@ class Simulation:
     def upload(self):
         from tidy3d import web
 
-        self.job = web.Job(simulation=self.sim, task_name=self.device.name)
+        self.job = []
+        for sim in self.sim:
+            self.job.append(web.Job(simulation=sim, task_name=self.device.name))
 
     def execute(self):
         import numpy as np
@@ -175,11 +178,11 @@ class Simulation:
         def get_port_name(port):
             return [int(i) for i in port if i.isdigit()][0]
 
-        def measure_transmission():
+        def measure_transmission(in_port):
             """Constructs a "row" of the scattering matrix"""
             num_ports = np.size(self.device.ports)
-            input_amp = self.results[self.in_port.name].amps.sel(
-                direction=get_source_direction(self.in_port)
+            input_amp = self.results[in_port.name].amps.sel(
+                direction=get_source_direction(in_port)
             )
             amps = np.zeros((num_ports, self.wavl_pts), dtype=complex)
             directions = get_directions(self.device.ports)
@@ -192,27 +195,28 @@ class Simulation:
 
             return amps
 
-        self.results = self.job.run(path=f"{self.device.name}/sim_data.hdf5")
-
-        amps_arms = measure_transmission()
-
-        logging.info("Mode amplitudes in each port: \n")
-        wavl = np.linspace(self.wavl_min, self.wavl_max, self.wavl_pts)
         self.s_parameters = s_parameters()
-        for amp, monitor in zip(amps_arms, self.results.simulation.monitors):
-            logging.info(f'\tmonitor     = "{monitor.name}"')
-            logging.info(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
-            logging.info(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
-            self.s_parameters.add_param(
-                sparam(
-                    idx_in=self.in_port.idx,
-                    idx_out=get_port_name(monitor.name),
-                    mode_in=1,
-                    mode_out=1,
-                    freq=td.C_0 / wavl,
-                    s=amp,
+        for idx, job in enumerate(self.job):
+            self.results = job.run(path=f"{self.device.name}/sim_data_{idx}.hdf5")
+
+            amps_arms = measure_transmission(self.in_port[idx])
+
+            logging.info("Mode amplitudes in each port: \n")
+            wavl = np.linspace(self.wavl_min, self.wavl_max, self.wavl_pts)
+            for amp, monitor in zip(amps_arms, self.results.simulation.monitors):
+                logging.info(f'\tmonitor     = "{monitor.name}"')
+                logging.info(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
+                logging.info(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
+                self.s_parameters.add_param(
+                    sparam(
+                        idx_in=self.in_port[idx].idx,
+                        idx_out=get_port_name(monitor.name),
+                        mode_in=1,
+                        mode_out=1,
+                        freq=td.C_0 / wavl,
+                        s=amp,
+                    )
                 )
-            )
 
     def visualize_results(self):
         import matplotlib.pyplot as plt
@@ -253,7 +257,7 @@ class s_parameters:
             mag = [10 * np.log10(abs(i) ** 2) for i in i.s]
             phase = [np.angle(i) ** 2 for i in i.s]
             ax.plot(td.C_0 / i.freq, mag, label=i.label)
-            fig.legend()
+        ax.legend()
 
 
 class sparam:

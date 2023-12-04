@@ -21,7 +21,11 @@ if __name__ == "__main__":
         wavl_min=1.5,
         wavl_max=1.6,
         wavl_pts=101,
-        symmetry=(0, 0, 0),  # ensure structure is symmetric across symmetry axis before triggering this!
+        symmetry=(
+            0,
+            0,
+            0,
+        ),  # ensure structure is symmetric across symmetry axis before triggering this!
         z_span=4,
         field_monitor_axis="y",
     )
@@ -30,5 +34,3 @@ if __name__ == "__main__":
     simulation.execute()
     #  visualize the results
     simulation.visualize_results()
-
-# %%

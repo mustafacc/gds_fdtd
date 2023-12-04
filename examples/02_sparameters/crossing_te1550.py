@@ -72,9 +72,10 @@ simulation = gtd.simprocessor.make_sim(
     wavl_max=wavl_max,
     wavl_pts=wavl_pts,
     symmetry=symmetry,
-    in_port=device.ports[1],
+    in_port=[p for p in device.ports],
     z_span=z_span,
-    field_monitor_axis='z',
+    field_monitor_axis=None,
+    grid_cells_per_wvl=8,
 )
 # %% upload and run the simulation
 # create job, upload sim to server to begin running
