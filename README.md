@@ -15,6 +15,6 @@ Minimal Python module to assist in setting up Tidy3D FDTD simulation on planar n
 ## Installation
 
 ```bash
-https://github.com/mustafacc/gds_tidy3d
+git clone git@github.com:mustafacc/gds_tidy3d.git
 cd gds_tidy3d
 pip install -e .[dev]
