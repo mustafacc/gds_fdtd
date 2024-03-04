@@ -10,6 +10,15 @@ import logging
 
 
 def dilate(vertices, extension=1):
+    """grow or shrink a rectangle defined as [[x1,y1],[x2,y2]]
+
+    Args:
+        vertices (list): list defining rectangle: [[x1,y1],[x2,y2]]
+        extension (int, optional): Growth amount. Defaults to 1.
+
+    Returns:
+        list: dilated rectangle.
+    """
     import numpy as np
 
     x_min = np.min([i[0] for i in vertices]) - extension
@@ -19,6 +28,29 @@ def dilate(vertices, extension=1):
 
     return [[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]]
 
+
+def dilate_1d(vertices, extension=1, dim="y"):
+    if dim == "x":
+        if vertices[0][0] < vertices[1][0]:
+            sign = 1
+        else:
+            sign = -1
+        return [[vertices[0][0] - abs(extension)*sign, vertices[0][1]], [vertices[1][0] + abs(extension)*sign, vertices[1][1]]]
+    elif dim == "y":
+        if vertices[0][1] < vertices[1][1]:
+            sign = 1
+        else:
+            sign = -1
+        return [[vertices[0][0], vertices[0][1] - abs(extension)]*sign, [vertices[1][0], vertices[1][1] + abs(extension)*sign]]
+    elif dim == "xy":
+        if vertices[0][1] < vertices[1][1]:
+            sign = 1
+        else:
+            sign = -1
+        return [[vertices[0][0], vertices[0][1] - abs(extension)]*sign, [vertices[1][0] + abs(extension)*sign, vertices[1][1] + abs(extension)*sign]]
+    
+    else:
+        raise ValueError("Dimension must be 'x' or 'y' or 'xy'")
 
 def load_layout(fname):
     import klayout.db as pya

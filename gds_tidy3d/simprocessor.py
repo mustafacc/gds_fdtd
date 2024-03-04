@@ -5,7 +5,9 @@ Tidy3D simulation processing module.
 @author: Mustafa Hammood, 2023
 """
 import tidy3d as td
-
+import numpy as np
+from .core import structure, region, port, component
+from .lyprocessor import load_structure_from_bounds, dilate_1d
 
 def make_source(
     port, width=3, depth=2, freq0=2e14, num_freqs=5, fwidth=1e13, buffer=0.1
@@ -444,6 +446,98 @@ def build_sim_from_tech(tech, layout, in_port=0, **kwargs):
     device = component(
         name=layout.name,
         structures=[device_sub, device_super] + device_wg,
+        ports=ports,
+        bounds=bounds,
+    )
+
+    return make_sim(
+        device=device,
+        in_port=device.ports[in_port],
+        z_span=z_span,
+        **kwargs,
+    )
+
+
+def from_gdsfactory(c, tech, in_port=0, **kwargs):
+    device_wg = []
+    ports = []
+
+    # for each layer in the device
+    for idx, layer in enumerate(c.get_layers()):
+        l = c.extract(layers={layer})
+
+        for i, s in enumerate(l.get_polygons()):
+            name = f"poly_{idx}_{i}"
+            device_wg.append(
+                structure(
+                    name=name,
+                    polygon=s,
+                    z_base=tech["device"][idx]["z_base"],
+                    z_span=tech["device"][idx]["z_span"],
+                    material=get_material(tech["device"][idx]),
+                    sidewall_angle=90,
+                )
+            )
+
+        # get device ports
+        for name, p in c.ports.items():
+            if p.layer == layer:
+                z_pos = (
+                    tech["device"][idx]["z_base"] + tech["device"][idx]["z_span"] / 2
+                )
+                ports.append(
+                    port(
+                        name=name,
+                        center=p.center.tolist() + [z_pos],
+                        width=p.width,
+                        direction=p.orientation,
+                    )
+                )
+
+    # get z_center based on structures center (minimize symmetry failures)
+    z_center = np.average([d.z_base + d.z_span / 2 for d in device_wg])
+    z_span = kwargs.pop("z_span", 4)  # Default value 4 if z_span is not provided
+
+    # expand bbox region to account for evanescent field
+    def min_dim(square):
+        x_dim = abs(square[0][0] - square[1][0])
+        y_dim = abs(square[0][1] - square[1][1])
+        if x_dim < y_dim:
+            return 'x'
+        elif x_dim > y_dim:
+            return 'y'
+        else:
+            return 'xy'
+
+
+    # expand the bbox region by 2 um (on each side) on the smallest dimension
+    bbox = dilate_1d(c.bbox.tolist(), extension=1, dim=min_dim(c.bbox.tolist()))
+
+    bounds = region(
+        vertices=bbox, z_center=z_center, z_span=z_span
+    )
+
+    # make the superstrate and substrate based on device bounds
+    # this information isn't typically captured in a 2D layer stack
+    device_super = load_structure_from_bounds(
+        bounds,
+        name="Superstrate",
+        z_base=tech["superstrate"][0]["z_base"],
+        z_span=tech["superstrate"][0]["z_span"],
+        material=get_material(tech["superstrate"][0]),
+    )
+    device_sub = load_structure_from_bounds(
+        bounds,
+        name="Subtrate",
+        z_base=tech["substrate"][0]["z_base"],
+        z_span=tech["substrate"][0]["z_span"],
+        material=get_material(tech["substrate"][0]),
+    )
+
+    # create the device by loading the structures
+    device = component(
+        name=c.name,
+        structures=[device_sub, device_super] + [device_wg],
         ports=ports,
         bounds=bounds,
     )
