@@ -131,3 +131,5 @@ dmypy.json
 *.swp
 
 examples/private/
+
+*.hdf5

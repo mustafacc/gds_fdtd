@@ -4,18 +4,30 @@ GDS_Tidy3D integration toolbox.
 Tidy3D simulation processing module.
 @author: Mustafa Hammood, 2023
 """
+
 import tidy3d as td
 import numpy as np
 from .core import structure, region, port, component
 from .lyprocessor import load_structure_from_bounds, dilate_1d
 
+
 def make_source(
-    port, width=3, depth=2, freq0=2e14, num_freqs=5, fwidth=1e13, buffer=0.1
+    port,
+    num_modes=1,
+    mode_index=0,
+    width=3,
+    depth=2,
+    freq0=2e14,
+    num_freqs=5,
+    fwidth=1e13,
+    buffer=0.1,
 ):
     """Create a simulation mode source on an input port.
 
     Args:
         port (port object): Port to add source to.
+        mode_index (int, optional): Mode index to launch. Defaults to 0.
+        num_modes (int, optional): Number of modes to launch in the source. Defaults to 1.
         width (int, optional): Source width. Defaults to 3 microns.
         depth (int, optional): Source depth. Defaults to 2 microns.
         freq0 (_type_, optional): Source's centre frequency. Defaults to 2e14 hz.
@@ -53,8 +65,8 @@ def make_source(
         size=size,
         direction=direction,
         source_time=td.GaussianPulse(freq0=freq0, fwidth=fwidth),
-        mode_spec=td.ModeSpec(),
-        mode_index=0,
+        mode_spec=td.ModeSpec(num_modes=num_modes),
+        mode_index=mode_index,
         num_freqs=num_freqs,
     )
     return msource
@@ -158,13 +170,14 @@ def make_structures(device, buffer=2):
     return structures
 
 
-def make_port_monitor(port, freqs=2e14, buffer=0.2, depth=2, width=3):
+def make_port_monitor(port, freqs=2e14, num_modes=1, buffer=0.2, depth=2, width=3):
     """
     Create mode monitor object for a given port.
 
     Args:
         port (port object): Port to create the monitor for.
         freqs (float, optional): Mode monitor's central frequency. Defaults to 2e14 hz.
+        num_modes (int, optional): Number of modes to be captured. Defaults to 1.
         buffer (float, optional): Distance between monitor and port location. Defaults to 0.2 microns.
         depth (int, optional): Monitor's depth. Defaults to 2 microns.
         width (int, optional): Monitors width. Defaults to 3 microns.
@@ -194,7 +207,7 @@ def make_port_monitor(port, freqs=2e14, buffer=0.2, depth=2, width=3):
         center=[port.x + x_buffer, port.y + y_buffer, port.z],
         size=size,
         freqs=freqs,
-        mode_spec=td.ModeSpec(),
+        mode_spec=td.ModeSpec(num_modes=num_modes),
         name=port.name,
     )
 
@@ -244,20 +257,22 @@ def make_field_monitor(device, freqs=2e14, axis="z", z_center=None):
 
 def make_sim(
     device,
-    wavl_min=1.45,
-    wavl_max=1.65,
-    wavl_pts=101,
-    width_ports=3,
-    depth_ports=2,
-    symmetry=(0, 0, 0),
-    num_freqs=5,
-    in_port=None,
-    boundary=td.BoundarySpec.all_sides(boundary=td.PML()),
-    grid_cells_per_wvl=15,
-    run_time_factor=50,
-    z_span=None,
-    field_monitor_axis=None,
-    visualize=True,
+    wavl_min: float = 1.45,
+    wavl_max: float = 1.65,
+    wavl_pts: int = 101,
+    width_ports: float = 3.0,
+    depth_ports: float = 2.0,
+    symmetry: tuple[int, int, int] = (0, 0, 0),
+    num_freqs: int = 5,
+    in_port: port | None = None,
+    mode_index=[0],
+    num_modes: int = 1,
+    boundary: td.BoundarySpec = td.BoundarySpec.all_sides(boundary=td.PML()),
+    grid_cells_per_wvl: int = 15,
+    run_time_factor: float = 50,
+    z_span: float | None = None,
+    field_monitor_axis: str | None = None,
+    visualize: bool = True,
 ):
     """Generate a single port excitation simulation.
 
@@ -271,6 +286,8 @@ def make_sim(
         symmetry (tuple, optional): Enforcing symmetry along axes. Defaults to (0, 0, 0).
         num_freqs (int, optional): Number of source's frequency mode evaluation pts. Defaults to 5 microns.
         in_port (port object, optional): Input port. Defaults to None.
+        mode_index(list, optional): Mode index to inject in source. Defaults to [0].
+        num_modes(int, optional): Number of source's and monitors modes. Defaults to 1.
         boundary (td.BonudarySpec object, optional): Configure boundary conditions. Defaults to td.BoundarySpec.all_sides(boundary=td.PML()).
         grid_cells_per_wvl (int, optional): Mesh settings, grid cells per wavelength. Defaults to 15.
         run_time_factor (int, optional): Runtime multiplier factor. Set larger if runtime is insufficient. Defaults to 50.
@@ -286,13 +303,13 @@ def make_sim(
     import numpy as np
     import matplotlib.pyplot as plt
 
+    # if no input port defined, use first as default
     if in_port is None:
         in_port = [device.ports[0]]
     if not isinstance(in_port, list):
         in_port = [in_port]
 
     lda0 = (wavl_max + wavl_min) / 2
-    lda_bw = wavl_max - wavl_min
     freq0 = td.C_0 / lda0
     freqs = td.C_0 / np.linspace(wavl_min, wavl_max, wavl_pts)
     fwidth = 0.5 * (np.max(freqs) - np.min(freqs))
@@ -309,9 +326,12 @@ def make_sim(
                 freqs=freqs,
                 depth=depth_ports,
                 width=width_ports,
+                num_modes=num_modes,
             )
         )
 
+    # make field monitor
+    # TODO: handle mode index cases in making field monitor
     if field_monitor_axis is not None:
         monitors.append(
             make_field_monitor(device, freqs=freqs, axis=field_monitor_axis)
@@ -325,17 +345,22 @@ def make_sim(
         run_time_factor * max(sim_size) / td.C_0
     )  # 85/fwidth  # sim. time in secs
 
-    # define source on a given port
+    # define source on a given port, for each mode index
+    # i.e., TE and TM mode indices on 3 input ports would result in 6 sources (simulation jobs)
     sources = []
-    for p in in_port:
-        sources.append(make_source(
-            port=p,
-            depth=depth_ports,
-            width=width_ports,
-            freq0=freq0,
-            num_freqs=num_freqs,
-            fwidth=fwidth,
-        ))
+    for m in mode_index:
+        for p in in_port:
+            sources.append(
+                make_source(
+                    port=p,
+                    depth=depth_ports,
+                    width=width_ports,
+                    freq0=freq0,
+                    num_freqs=num_freqs,
+                    fwidth=fwidth,
+                    num_modes=num_modes,
+                )
+            )
 
     # initialize the simulation
     simulation = Simulation(
@@ -344,23 +369,26 @@ def make_sim(
         wavl_min=wavl_min,
         wavl_pts=wavl_pts,
         device=device,
-        sim=[td.Simulation(
-            size=sim_size,
-            grid_spec=td.GridSpec.auto(
-                min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0
-            ),
-            structures=structures,
-            sources=[s],
-            monitors=monitors,
-            run_time=run_time,
-            boundary_spec=boundary,
-            center=(
-                device.bounds.x_center,
-                device.bounds.y_center,
-                device.bounds.z_center,
-            ),
-            symmetry=symmetry,
-        ) for s in sources],
+        sim=[
+            td.Simulation(
+                size=sim_size,
+                grid_spec=td.GridSpec.auto(
+                    min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0
+                ),
+                structures=structures,
+                sources=[s],
+                monitors=monitors,
+                run_time=run_time,
+                boundary_spec=boundary,
+                center=(
+                    device.bounds.x_center,
+                    device.bounds.y_center,
+                    device.bounds.z_center,
+                ),
+                symmetry=symmetry,
+            )
+            for s in sources
+        ],
     )
 
     if visualize:
@@ -503,19 +531,16 @@ def from_gdsfactory(c, tech, in_port=0, **kwargs):
         x_dim = abs(square[0][0] - square[1][0])
         y_dim = abs(square[0][1] - square[1][1])
         if x_dim < y_dim:
-            return 'x'
+            return "x"
         elif x_dim > y_dim:
-            return 'y'
+            return "y"
         else:
-            return 'xy'
-
+            return "xy"
 
     # expand the bbox region by 2 um (on each side) on the smallest dimension
     bbox = dilate_1d(c.bbox.tolist(), extension=1, dim=min_dim(c.bbox.tolist()))
 
-    bounds = region(
-        vertices=bbox, z_center=z_center, z_span=z_span
-    )
+    bounds = region(vertices=bbox, z_center=z_center, z_span=z_span)
 
     # make the superstrate and substrate based on device bounds
     # this information isn't typically captured in a 2D layer stack

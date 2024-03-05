@@ -5,8 +5,9 @@
 """
 import tidy3d as td
 import gds_tidy3d as gtd
+import os
 
-fname_gds = "crossing_te1550.gds"
+file_gds = os.path.join(os.path.dirname(__file__), "crossing_te1550.gds")
 
 # define 3D geometry paramters not captured in the 2D layout
 thickness_si = 0.22
@@ -33,7 +34,7 @@ wavl_pts = 101
 symmetry = (0, 0, 1)
 
 # %% load and process the layout file
-layout = gtd.lyprocessor.load_layout(fname_gds)
+layout = gtd.lyprocessor.load_layout(file_gds)
 
 # load all the ports in the device and (optional) initialize each to have a center
 ports_si = gtd.lyprocessor.load_ports(layout, layer=[1, 10])
