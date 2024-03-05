@@ -179,7 +179,10 @@ class Simulation:
             return [int(i) for i in port if i.isdigit()][0]
 
         def measure_transmission(in_port):
-            """Constructs a "row" of the scattering matrix"""
+            """
+            Constructs a "row" of the scattering matrix.
+            TODO: Handle multiple number of modes, currently crashes workflow
+            """
             num_ports = np.size(self.device.ports)
             input_amp = self.results[in_port.name].amps.sel(
                 direction=get_source_direction(in_port)

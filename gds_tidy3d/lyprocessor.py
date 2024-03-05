@@ -66,7 +66,7 @@ def load_layout(fname):
     return layout(name, ly, cell)
 
 
-def load_region(layout, layer=[68, 0], z_center=0, z_span=5, extension=-0.01):
+def load_region(layout, layer=[68, 0], z_center=0, z_span=5, extension=1.3):
     """
     Get device bounds.
 

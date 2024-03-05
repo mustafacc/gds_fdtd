@@ -12,15 +12,15 @@ from .lyprocessor import load_structure_from_bounds, dilate_1d
 
 
 def make_source(
-    port,
-    num_modes=1,
-    mode_index=0,
-    width=3,
-    depth=2,
-    freq0=2e14,
-    num_freqs=5,
-    fwidth=1e13,
-    buffer=0.1,
+    port: port,
+    num_modes: int = 1,
+    mode_index: int = 0,
+    width: float = 3.0,
+    depth: float = 2.0,
+    freq0: float = 2e14,
+    num_freqs: int = 5,
+    fwidth: float = 1e13,
+    buffer: float = -0.2,
 ):
     """Create a simulation mode source on an input port.
 
@@ -68,6 +68,7 @@ def make_source(
         mode_spec=td.ModeSpec(num_modes=num_modes),
         mode_index=mode_index,
         num_freqs=num_freqs,
+        name=f'msource_{port.name}_idx{mode_index}',
     )
     return msource
 
@@ -85,6 +86,7 @@ def make_structures(device, buffer=2):
     import tidy3d as td
     import numpy as np
 
+    # TODO fix box tox handling here
     structures = []
     for s in device.structures:
         if type(s) == list:
@@ -102,6 +104,7 @@ def make_structures(device, buffer=2):
                             sidewall_angle=(90 - i.sidewall_angle) * (np.pi / 180),
                         ),
                         medium=i.material,
+                        name=i.name,
                     )
                 )
         else:
@@ -118,6 +121,7 @@ def make_structures(device, buffer=2):
                         sidewall_angle=(90 - s.sidewall_angle) * (np.pi / 180),
                     ),
                     medium=s.material,
+                    name=s.name,
                 )
             )
 
@@ -165,12 +169,13 @@ def make_structures(device, buffer=2):
                     * (np.pi / 180),
                 ),
                 medium=p.material,
+                name=f'port_{p.name}'
             )
         )
     return structures
 
 
-def make_port_monitor(port, freqs=2e14, num_modes=1, buffer=0.2, depth=2, width=3):
+def make_port_monitor(port, freqs=2e14, num_modes=1, buffer=-0.1, depth=2, width=3):
     """
     Create mode monitor object for a given port.
 
@@ -251,7 +256,7 @@ def make_field_monitor(device, freqs=2e14, axis="z", z_center=None):
         center=center,
         size=size,
         freqs=freqs,
-        name="field",
+        name=f"{axis}_field",
     )
 
 
@@ -359,8 +364,30 @@ def make_sim(
                     num_freqs=num_freqs,
                     fwidth=fwidth,
                     num_modes=num_modes,
+                    mode_index=m,
                 )
             )
+
+    sim_jobs = [
+        td.Simulation(
+            size=sim_size,
+            grid_spec=td.GridSpec.auto(
+                min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0
+            ),
+            structures=structures,
+            sources=[s],
+            monitors=monitors,
+            run_time=run_time,
+            boundary_spec=boundary,
+            center=(
+                device.bounds.x_center,
+                device.bounds.y_center,
+                device.bounds.z_center,
+            ),
+            symmetry=symmetry,
+        )
+        for s in sources
+    ]
 
     # initialize the simulation
     simulation = Simulation(
@@ -369,26 +396,7 @@ def make_sim(
         wavl_min=wavl_min,
         wavl_pts=wavl_pts,
         device=device,
-        sim=[
-            td.Simulation(
-                size=sim_size,
-                grid_spec=td.GridSpec.auto(
-                    min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0
-                ),
-                structures=structures,
-                sources=[s],
-                monitors=monitors,
-                run_time=run_time,
-                boundary_spec=boundary,
-                center=(
-                    device.bounds.x_center,
-                    device.bounds.y_center,
-                    device.bounds.z_center,
-                ),
-                symmetry=symmetry,
-            )
-            for s in sources
-        ],
+        sim=sim_jobs,
     )
 
     if visualize:

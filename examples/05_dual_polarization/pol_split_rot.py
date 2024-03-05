@@ -4,7 +4,6 @@
 @author: Mustafa Hammood
 """
 import gds_tidy3d as gtd
-import tidy3d as td
 import os
 
 if __name__ == "__main__":
@@ -28,15 +27,16 @@ if __name__ == "__main__":
         ),  # ensure structure is symmetric across symmetry axis before triggering this!
         z_span=4,
         field_monitor_axis="y",
-        mode_index=[0],
+        mode_index=[1],
+        num_modes=1,
     )
 
 
     simulation.upload()
     # run the simulation. CHECK THE SIMULATION IN THE UI BEFORE RUNNING!
-    simulation.execute()
+    #simulation.execute()
     #%%
     #  visualize the results
-    simulation.visualize_results()
+    #simulation.visualize_results()
 
 # %%
