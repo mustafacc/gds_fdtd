@@ -16,7 +16,7 @@ if __name__ == "__main__":
     simulation = gtd.simprocessor.build_sim_from_tech(
         tech=technology,
         layout=layout,
-        in_port=0,
+        in_port='all',
         wavl_min=1.5,
         wavl_max=1.6,
         wavl_pts=101,
@@ -27,12 +27,12 @@ if __name__ == "__main__":
         ),  # ensure structure is symmetric across symmetry axis before triggering this!
         z_span=4,
         field_monitor_axis="y",
-        mode_index=[1],
+        mode_index=0,
         num_modes=1,
     )
 
 
-    simulation.upload()
+    #simulation.upload()
     # run the simulation. CHECK THE SIMULATION IN THE UI BEFORE RUNNING!
     #simulation.execute()
     #%%

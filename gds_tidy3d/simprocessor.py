@@ -8,8 +8,13 @@ Tidy3D simulation processing module.
 import tidy3d as td
 import numpy as np
 from .core import structure, region, port, component
-from .lyprocessor import load_structure_from_bounds, dilate_1d
-
+from .lyprocessor import (
+    load_structure,
+    load_region,
+    load_ports,
+    load_structure_from_bounds,
+    dilate_1d
+)
 
 def make_source(
     port: port,
@@ -68,7 +73,7 @@ def make_source(
         mode_spec=td.ModeSpec(num_modes=num_modes),
         mode_index=mode_index,
         num_freqs=num_freqs,
-        name=f'msource_{port.name}_idx{mode_index}',
+        name=f"msource_{port.name}_idx{mode_index}",
     )
     return msource
 
@@ -169,7 +174,7 @@ def make_structures(device, buffer=2):
                     * (np.pi / 180),
                 ),
                 medium=p.material,
-                name=f'port_{p.name}'
+                name=f"port_{p.name}",
             )
         )
     return structures
@@ -269,8 +274,8 @@ def make_sim(
     depth_ports: float = 2.0,
     symmetry: tuple[int, int, int] = (0, 0, 0),
     num_freqs: int = 5,
-    in_port: port | None = None,
-    mode_index=[0],
+    in_port: port | str | None = None,
+    mode_index: list | int = 0,
     num_modes: int = 1,
     boundary: td.BoundarySpec = td.BoundarySpec.all_sides(boundary=td.PML()),
     grid_cells_per_wvl: int = 15,
@@ -313,6 +318,11 @@ def make_sim(
         in_port = [device.ports[0]]
     if not isinstance(in_port, list):
         in_port = [in_port]
+    if in_port == 'all':
+        in_port = device.ports[0]
+
+    if not isinstance(mode_index, list):
+        mode_index = [mode_index]
 
     lda0 = (wavl_max + wavl_min) / 2
     freq0 = td.C_0 / lda0
@@ -350,44 +360,48 @@ def make_sim(
         run_time_factor * max(sim_size) / td.C_0
     )  # 85/fwidth  # sim. time in secs
 
-    # define source on a given port, for each mode index
-    # i.e., TE and TM mode indices on 3 input ports would result in 6 sources (simulation jobs)
-    sources = []
+    """
+    define sim jobs: create source on a given port, for each mode index
+    i.e., TE and TM mode indices on 3 input ports would result in 6 sources (simulation jobs)
+    some thoughts:
+    when jobs are defined and sent to api, we lose the link between the simulation object and tidy3d simulation
+    we maintain some data by turning the job into a dictionary object
+    TODO: in the future, sim_job should be an object, and simulation should be a partial object of sim_job
+    """
+    sim_jobs = []
     for m in mode_index:
         for p in in_port:
-            sources.append(
-                make_source(
-                    port=p,
-                    depth=depth_ports,
-                    width=width_ports,
-                    freq0=freq0,
-                    num_freqs=num_freqs,
-                    fwidth=fwidth,
-                    num_modes=num_modes,
-                    mode_index=m,
-                )
+            source = make_source(
+                port=p,
+                depth=depth_ports,
+                width=width_ports,
+                freq0=freq0,
+                num_freqs=num_freqs,
+                fwidth=fwidth,
+                num_modes=num_modes,
+                mode_index=m,
             )
-
-    sim_jobs = [
-        td.Simulation(
-            size=sim_size,
-            grid_spec=td.GridSpec.auto(
-                min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0
-            ),
-            structures=structures,
-            sources=[s],
-            monitors=monitors,
-            run_time=run_time,
-            boundary_spec=boundary,
-            center=(
-                device.bounds.x_center,
-                device.bounds.y_center,
-                device.bounds.z_center,
-            ),
-            symmetry=symmetry,
-        )
-        for s in sources
-    ]
+            sim = {}
+            sim["name"] = f"{device.name}_{p.name}_idx{m}"
+            sim["source"] = source
+            sim["job"] = td.Simulation(
+                    size=sim_size,
+                    grid_spec=td.GridSpec.auto(
+                        min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0
+                    ),
+                    structures=structures,
+                    sources=[source],
+                    monitors=monitors,
+                    run_time=run_time,
+                    boundary_spec=boundary,
+                    center=(
+                        device.bounds.x_center,
+                        device.bounds.y_center,
+                        device.bounds.z_center,
+                    ),
+                    symmetry=symmetry,
+                )
+            sim_jobs.append(sim)
 
     # initialize the simulation
     simulation = Simulation(
@@ -396,23 +410,31 @@ def make_sim(
         wavl_min=wavl_min,
         wavl_pts=wavl_pts,
         device=device,
-        sim=sim_jobs,
+        sim_jobs=sim_jobs,
     )
 
     if visualize:
-        for sim in simulation.sim:
+        for sim_job in simulation.sim_jobs:
+            sim = sim_job["job"]
             for m in sim.monitors:
                 m.help()
 
-        sources[0].source_time.plot(np.linspace(0, run_time, 1001))
+        source.source_time.plot(np.linspace(0, run_time, 1001))
         plt.show()
 
         # visualize geometry
-        for sim in simulation.sim:
-            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 4))
+        for sim_job in simulation.sim_jobs:
+            sim = sim_job["job"]
+            gridsize = (3, 2)
+            fig = plt.figure(figsize=(12, 8))
+            ax1 = plt.subplot2grid(gridsize, (0, 0), colspan=2, rowspan=2)
+            ax2 = plt.subplot2grid(gridsize, (2, 0))
+            ax3 = plt.subplot2grid(gridsize, (2, 1))
+
             sim.plot(z=device.bounds.z_center, ax=ax1)
             sim.plot(x=0.0, ax=ax2)
-            ax2.set_xlim([-device.bounds.x_span / 2, device.bounds.y_span / 2])
+            sim.plot(x=device.bounds.x_center, ax=ax3)
+            ax1.set_title(sim_job["name"])
             plt.show()
     return simulation
 
@@ -425,14 +447,6 @@ def get_material(device):
 
 
 def build_sim_from_tech(tech, layout, in_port=0, **kwargs):
-    from .core import component
-    from .lyprocessor import (
-        load_structure,
-        load_region,
-        load_ports,
-        load_structure_from_bounds,
-    )
-    import numpy as np
 
     # load the structures in the device
     device_wg = []
@@ -486,13 +500,20 @@ def build_sim_from_tech(tech, layout, in_port=0, **kwargs):
         bounds=bounds,
     )
 
-    return make_sim(
-        device=device,
-        in_port=device.ports[in_port],
-        z_span=z_span,
-        **kwargs,
-    )
-
+    if isinstance(in_port, int):
+        return make_sim(
+            device=device,
+            in_port=device.ports[in_port],
+            z_span=z_span,
+            **kwargs,
+        )
+    elif in_port=='all':
+        return make_sim(
+            device=device,
+            in_port=device.ports[:],
+            z_span=z_span,
+            **kwargs,
+        )
 
 def from_gdsfactory(c, tech, in_port=0, **kwargs):
     device_wg = []

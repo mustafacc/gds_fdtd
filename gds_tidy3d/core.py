@@ -50,6 +50,7 @@ class port:
         self.direction = direction
         # initialize height as none
         # will be assigned upon component __init__
+        # TODO: feels like a better way to do this..
         self.height = None
         self.material = None
 
@@ -125,7 +126,7 @@ class component:
         for p in self.ports:
             # check if port location is within any structure
             for s in self.structures:
-                # hack: if s is a list then it's not a box/clad region, find a better way to identify this..
+                # TODO: hack: if s is a list then it's not a box/clad region, find a better way to identify this..
                 if type(s) == list:
                     for poly in s:
                         if is_point_inside_polygon(p.center[:2], poly.polygon):
@@ -139,23 +140,25 @@ class component:
 
 class Simulation:
     def __init__(
-        self, in_port, device, wavl_min=1.45, wavl_max=1.65, wavl_pts=101, sim=None
+        self, in_port, device, wavl_min=1.45, wavl_max=1.65, wavl_pts=101, sim_jobs=None
     ):
         self.in_port = in_port
         self.device = device
         self.wavl_min = wavl_min
         self.wavl_max = wavl_max
         self.wavl_pts = wavl_pts
-        self.sim = sim
+        self.sim_jobs = sim_jobs
         self.job = None
         self.results = None
 
     def upload(self):
         from tidy3d import web
-
+        # divide between job and sim, how to attach them?
         self.job = []
-        for sim in self.sim:
-            self.job.append(web.Job(simulation=sim, task_name=self.device.name))
+        for sim_job in self.sim_jobs:
+            sim = sim_job["job"]
+            name = sim_job["name"]
+            self.job.append(web.Job(simulation=sim, task_name=name))
 
     def execute(self):
         import numpy as np
@@ -199,6 +202,7 @@ class Simulation:
             return amps
 
         self.s_parameters = s_parameters()
+        # does this loop make sense? how does input port index correspond to job index?
         for idx, job in enumerate(self.job):
             self.results = job.run(path=f"{self.device.name}/sim_data_{idx}.hdf5")
 
@@ -210,6 +214,7 @@ class Simulation:
                 logging.info(f'\tmonitor     = "{monitor.name}"')
                 logging.info(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
                 logging.info(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
+
                 self.s_parameters.add_param(
                     sparam(
                         idx_in=self.in_port[idx].idx,
