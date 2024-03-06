@@ -4,6 +4,9 @@
 @author: Mustafa Hammood
 """
 import gds_tidy3d as gtd
+import matplotlib.pyplot as plt
+import numpy as np
+import tidy3d as td
 import os
 
 if __name__ == "__main__":
@@ -16,7 +19,7 @@ if __name__ == "__main__":
     simulation = gtd.simprocessor.build_sim_from_tech(
         tech=technology,
         layout=layout,
-        in_port='all',
+        in_port=0,
         wavl_min=1.5,
         wavl_max=1.6,
         wavl_pts=101,
@@ -26,17 +29,30 @@ if __name__ == "__main__":
             0,
         ),  # ensure structure is symmetric across symmetry axis before triggering this!
         z_span=4,
-        field_monitor_axis="y",
-        mode_index=0,
-        num_modes=1,
+        mode_index=[0,1],
+        num_modes=2,
     )
 
-
-    #simulation.upload()
+    simulation.upload()
     # run the simulation. CHECK THE SIMULATION IN THE UI BEFORE RUNNING!
-    #simulation.execute()
-    #%%
-    #  visualize the results
-    #simulation.visualize_results()
+    simulation.execute()
 
+
+    #  visualize the results
+    simulation.visualize_results()
+
+    fig, ax = plt.subplots(1, 1)
+    ax.set_xlabel("Wavelength [microns]")
+    ax.set_ylabel("Transmission [dB]")
+    te_mode = simulation.s_parameters.entries_in_mode(mode_in=0, mode_out=0)
+    tm_mode = simulation.s_parameters.entries_in_mode(mode_in=1, mode_out=1)
+
+    idx=1
+    mag_te = [10 * np.log10(abs(s_value) ** 2) for s_value in te_mode[idx].s]
+    ax.plot(td.C_0 / te_mode[idx].freq, mag_te, label=f"{te_mode[idx].label} (TE-TE)")
+
+    mag_tm = [10 * np.log10(abs(s_value) ** 2) for s_value in tm_mode[idx].s]
+    ax.plot(td.C_0 / tm_mode[idx].freq, mag_tm, label=f"{tm_mode[idx].label} (TM-TM)")
+
+    ax.legend()
 # %%
