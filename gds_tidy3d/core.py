@@ -113,6 +113,22 @@ class region:
     def y_center(self):
         return (min(self.y) + max(self.y)) / 2
 
+    @property
+    def x_min(self):
+        return min(self.x)
+
+    @property
+    def x_max(self):
+        return max(self.x)
+
+    @property
+    def y_min(self):
+        return min(self.y)
+
+    @property
+    def y_max(self):
+        return max(self.y)
+
 
 class component:
     def __init__(self, name, structures, ports, bounds):
