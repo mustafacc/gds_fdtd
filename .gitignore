@@ -133,3 +133,5 @@ dmypy.json
 examples/private/
 
 *.hdf5
+
+.vscode/

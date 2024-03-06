@@ -251,7 +251,7 @@ class Simulation:
                 freq=td.C_0 / ((self.wavl_max + self.wavl_min) / 2),
                 ax=ax,
             )
-            plt.show()
+            fig.show()
         except:
             return
 

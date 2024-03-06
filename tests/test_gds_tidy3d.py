@@ -484,7 +484,7 @@ def test_make_sim():
         wavl_min=1.5,
         wavl_pts=101,
         device=device,
-        sim=td.Simulation(
+        sim_jobs=td.Simulation(
             size=sim_size,
             grid_spec=td.GridSpec.auto(min_steps_per_wvl=18, wavelength=1.55),
             structures=structures,
