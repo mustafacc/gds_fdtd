@@ -9,7 +9,7 @@ from .core import layout, port, structure, region
 import logging
 
 
-def dilate(vertices, extension=1):
+def dilate(vertices, extension=1.3):
     """grow or shrink a rectangle defined as [[x1,y1],[x2,y2]]
 
     Args:
@@ -76,6 +76,12 @@ def load_region(layout, layer=[68, 0], z_center=0, z_span=5, extension=1.3):
         layout to extract the polygons from.
     layer : klayout.db (pya) layout.layer() type
         Layer to place detect the devrec object from.
+    z_center: float
+        Z-center of the layout. Defaults to 0 (microns).
+    z_span: float
+        Z-span of the layout. Defaults to 5 (microns).
+    extension: float
+        amount of extended region to retrieve beyond specified region.
 
     Returns
     -------

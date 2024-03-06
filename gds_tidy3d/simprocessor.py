@@ -7,12 +7,13 @@ Tidy3D simulation processing module.
 
 import tidy3d as td
 import numpy as np
-from .core import structure, region, port, component
+from .core import structure, region, port, component, Simulation
 from .lyprocessor import (
     load_structure,
     load_region,
     load_ports,
     load_structure_from_bounds,
+    dilate,
     dilate_1d,
 )
 
@@ -309,7 +310,6 @@ def make_sim(
     Returns:
         simulation: Generated simulation instance.
     """
-    from .core import Simulation
 
     import numpy as np
     import matplotlib.pyplot as plt
@@ -519,7 +519,7 @@ def build_sim_from_tech(tech, layout, in_port=0, **kwargs):
         )
 
 
-def from_gdsfactory(c, tech, in_port=0, **kwargs):
+def from_gdsfactory(c, tech: dict, in_port: int = 0, **kwargs):
     device_wg = []
     ports = []
 
@@ -536,7 +536,7 @@ def from_gdsfactory(c, tech, in_port=0, **kwargs):
                     z_base=tech["device"][idx]["z_base"],
                     z_span=tech["device"][idx]["z_span"],
                     material=get_material(tech["device"][idx]),
-                    sidewall_angle=90,
+                    sidewall_angle=tech["device"][idx]["sidewall_angle"],
                 )
             )
 
@@ -570,10 +570,10 @@ def from_gdsfactory(c, tech, in_port=0, **kwargs):
         else:
             return "xy"
 
-    # expand the bbox region by 2 um (on each side) on the smallest dimension
-    bbox = dilate_1d(c.bbox.tolist(), extension=1, dim=min_dim(c.bbox.tolist()))
-
-    bounds = region(vertices=bbox, z_center=z_center, z_span=z_span)
+    # expand the bbox region by 1.3 um (on each side) on the smallest dimension
+    bbox = dilate_1d(c.bbox.tolist(), extension=0, dim=min_dim(c.bbox.tolist()))
+    bbox_dilated = dilate(bbox)
+    bounds = region(vertices=bbox_dilated, z_center=z_center, z_span=z_span)
 
     # make the superstrate and substrate based on device bounds
     # this information isn't typically captured in a 2D layer stack
