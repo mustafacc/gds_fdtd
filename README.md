@@ -9,8 +9,9 @@ Minimal Python module to assist in setting up Tidy3D FDTD simulation on planar n
 
 ## Features
 - Generate tidy3d simulation of a gds device systematically.
-- Generate tidy3d simulations from GDS device by identifying ports and simulation region from an input technology stack.
+- Generate tidy3d simulations from GDS device by identifying ports and simulation region from an input technology stack or [gdsfactory](https://github.com/gdsfactory/gdsfactory).
 - Generate S-parameters of devices and export them to standard formats.
+- Generate multimode (or dual polarization) simulations.
 
 ## Installation
 

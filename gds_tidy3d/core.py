@@ -4,6 +4,7 @@ GDS_Tidy3D integration toolbox.
 Core objects module.
 @author: Mustafa Hammood, 2023
 """
+
 import tidy3d as td
 import logging
 
@@ -148,17 +149,17 @@ class Simulation:
         self.wavl_max = wavl_max
         self.wavl_pts = wavl_pts
         self.sim_jobs = sim_jobs
-        self.job = None
         self.results = None
 
     def upload(self):
         from tidy3d import web
+
         # divide between job and sim, how to attach them?
-        self.job = []
+
         for sim_job in self.sim_jobs:
-            sim = sim_job["job"]
+            sim = sim_job["sim"]
             name = sim_job["name"]
-            self.job.append(web.Job(simulation=sim, task_name=name))
+            sim_job["job"] = web.Job(simulation=sim, task_name=name)
 
     def execute(self):
         import numpy as np
@@ -181,50 +182,61 @@ class Simulation:
         def get_port_name(port):
             return [int(i) for i in port if i.isdigit()][0]
 
-        def measure_transmission(in_port):
+        def measure_transmission(in_port, in_mode_idx, out_mode_idx):
             """
             Constructs a "row" of the scattering matrix.
             TODO: Handle multiple number of modes, currently crashes workflow
             """
             num_ports = np.size(self.device.ports)
             input_amp = self.results[in_port.name].amps.sel(
-                direction=get_source_direction(in_port)
+                direction=get_source_direction(in_port),
+                mode_index=in_mode_idx,
             )
             amps = np.zeros((num_ports, self.wavl_pts), dtype=complex)
             directions = get_directions(self.device.ports)
             for i, (monitor, direction) in enumerate(
                 zip(self.results.simulation.monitors[:num_ports], directions)
             ):
-                amp = self.results[monitor.name].amps.sel(direction=direction)
+                amp = self.results[monitor.name].amps.sel(
+                    direction=direction, mode_index=out_mode_idx
+                )
                 amp_normalized = amp / input_amp
                 amps[i] = np.squeeze(amp_normalized.values)
 
             return amps
 
         self.s_parameters = s_parameters()
-        # does this loop make sense? how does input port index correspond to job index?
-        for idx, job in enumerate(self.job):
-            self.results = job.run(path=f"{self.device.name}/sim_data_{idx}.hdf5")
 
-            amps_arms = measure_transmission(self.in_port[idx])
-
-            logging.info("Mode amplitudes in each port: \n")
-            wavl = np.linspace(self.wavl_min, self.wavl_max, self.wavl_pts)
-            for amp, monitor in zip(amps_arms, self.results.simulation.monitors):
-                logging.info(f'\tmonitor     = "{monitor.name}"')
-                logging.info(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
-                logging.info(f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n")
-
-                self.s_parameters.add_param(
-                    sparam(
-                        idx_in=self.in_port[idx].idx,
-                        idx_out=get_port_name(monitor.name),
-                        mode_in=1,
-                        mode_out=1,
-                        freq=td.C_0 / wavl,
-                        s=amp,
-                    )
+        for sim_job in self.sim_jobs:
+            self.results = sim_job["job"].run(
+                path=f"{self.device.name}/{sim_job['name']}.hdf5"
+            )
+            for mode in range(sim_job["num_modes"]):
+                amps_arms = measure_transmission(
+                    in_port=sim_job["in_port"],
+                    in_mode_idx=sim_job["source"].mode_index,
+                    out_mode_idx=mode,
                 )
+
+                logging.info("Mode amplitudes in each port: \n")
+                wavl = np.linspace(self.wavl_min, self.wavl_max, self.wavl_pts)
+                for amp, monitor in zip(amps_arms, self.results.simulation.monitors):
+                    logging.info(f'\tmonitor     = "{monitor.name}"')
+                    logging.info(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
+                    logging.info(
+                        f"\tphase       = {[np.angle(i)**2 for i in amp]} (rad)\n"
+                    )
+
+                    self.s_parameters.add_param(
+                        sparam(
+                            idx_in=sim_job["in_port"].idx,
+                            idx_out=get_port_name(monitor.name),
+                            mode_in=sim_job["source"].mode_index,
+                            mode_out=mode,
+                            freq=td.C_0 / wavl,
+                            s=amp,
+                        )
+                    )
 
     def visualize_results(self):
         import matplotlib.pyplot as plt
@@ -247,12 +259,19 @@ class Simulation:
 class s_parameters:
     def __init__(self, entries=None):
         if entries is None:
-            self.entries = []
+            self._entries = []
         return
 
     def add_param(self, sparam):
-        self.entries.append(sparam)
+        self._entries.append(sparam)
 
+    def entries_in_mode(self, mode_in=0, mode_out=0):
+        entries = []
+        for s in self._entries:
+            if s.mode_in == mode_in and s.mode_out == mode_out:
+                entries.append(s)
+        return entries
+        
     def plot(self):
         import matplotlib.pyplot as plt
         import numpy as np
@@ -260,7 +279,7 @@ class s_parameters:
         fig, ax = plt.subplots(1, 1)
         ax.set_xlabel("Wavelength [microns]")
         ax.set_ylabel("Transmission [dB]")
-        for i in self.entries:
+        for i in self._entries:
             logging.info("Mode amplitudes in each port: \n")
             mag = [10 * np.log10(abs(i) ** 2) for i in i.s]
             phase = [np.angle(i) ** 2 for i in i.s]
@@ -279,7 +298,7 @@ class sparam:
 
     @property
     def label(self):
-        return f"S{self.idx_out}{self.idx_in}"
+        return f"S{self.idx_out}{self.idx_in}_idx{self.mode_out}{self.mode_in}"
 
 
 def parse_yaml_tech(file_path):

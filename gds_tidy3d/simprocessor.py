@@ -13,8 +13,9 @@ from .lyprocessor import (
     load_region,
     load_ports,
     load_structure_from_bounds,
-    dilate_1d
+    dilate_1d,
 )
+
 
 def make_source(
     port: port,
@@ -318,7 +319,7 @@ def make_sim(
         in_port = [device.ports[0]]
     if not isinstance(in_port, list):
         in_port = [in_port]
-    if in_port == 'all':
+    if in_port == "all":
         in_port = device.ports[0]
 
     if not isinstance(mode_index, list):
@@ -384,23 +385,25 @@ def make_sim(
             sim = {}
             sim["name"] = f"{device.name}_{p.name}_idx{m}"
             sim["source"] = source
-            sim["job"] = td.Simulation(
-                    size=sim_size,
-                    grid_spec=td.GridSpec.auto(
-                        min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0
-                    ),
-                    structures=structures,
-                    sources=[source],
-                    monitors=monitors,
-                    run_time=run_time,
-                    boundary_spec=boundary,
-                    center=(
-                        device.bounds.x_center,
-                        device.bounds.y_center,
-                        device.bounds.z_center,
-                    ),
-                    symmetry=symmetry,
-                )
+            sim["in_port"] = p
+            sim["num_modes"] = num_modes
+            sim["sim"] = td.Simulation(
+                size=sim_size,
+                grid_spec=td.GridSpec.auto(
+                    min_steps_per_wvl=grid_cells_per_wvl, wavelength=lda0
+                ),
+                structures=structures,
+                sources=[source],
+                monitors=monitors,
+                run_time=run_time,
+                boundary_spec=boundary,
+                center=(
+                    device.bounds.x_center,
+                    device.bounds.y_center,
+                    device.bounds.z_center,
+                ),
+                symmetry=symmetry,
+            )
             sim_jobs.append(sim)
 
     # initialize the simulation
@@ -415,7 +418,7 @@ def make_sim(
 
     if visualize:
         for sim_job in simulation.sim_jobs:
-            sim = sim_job["job"]
+            sim = sim_job["sim"]
             for m in sim.monitors:
                 m.help()
 
@@ -424,7 +427,7 @@ def make_sim(
 
         # visualize geometry
         for sim_job in simulation.sim_jobs:
-            sim = sim_job["job"]
+            sim = sim_job["sim"]
             gridsize = (3, 2)
             fig = plt.figure(figsize=(12, 8))
             ax1 = plt.subplot2grid(gridsize, (0, 0), colspan=2, rowspan=2)
@@ -507,13 +510,14 @@ def build_sim_from_tech(tech, layout, in_port=0, **kwargs):
             z_span=z_span,
             **kwargs,
         )
-    elif in_port=='all':
+    elif in_port == "all":
         return make_sim(
             device=device,
             in_port=device.ports[:],
             z_span=z_span,
             **kwargs,
         )
+
 
 def from_gdsfactory(c, tech, in_port=0, **kwargs):
     device_wg = []
