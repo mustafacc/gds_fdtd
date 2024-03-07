@@ -276,6 +276,8 @@ class s_parameters:
     def __init__(self, entries=None):
         if entries is None:
             self._entries = []
+        else:
+            self._entries = entries
         return
 
     def add_param(self, sparam):
@@ -287,7 +289,17 @@ class s_parameters:
             if s.mode_in == mode_in and s.mode_out == mode_out:
                 entries.append(s)
         return entries
-        
+
+    def entries_in_ports(self, input_entries=None, idx_in=0, idx_out=0):
+        entries = []
+        if input_entries == None:
+            input_entries = self._entries
+
+        for s in input_entries:
+            if s.idx_in == idx_in and s.idx_out == idx_out:
+                entries.append(s)            
+        return entries
+
     def plot(self):
         import matplotlib.pyplot as plt
         import numpy as np
@@ -301,6 +313,7 @@ class s_parameters:
             phase = [np.angle(i) ** 2 for i in i.s]
             ax.plot(td.C_0 / i.freq, mag, label=i.label)
         ax.legend()
+        return fig, ax
 
 
 class sparam:
