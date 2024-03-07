@@ -10,7 +10,7 @@ with open('README.md') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = [ ]
+requirements = ['tidy3d', 'numpy', 'pyyaml', 'klayout', 'gdsfactory']
 
 test_requirements = ['pytest>=3', ]
 
@@ -44,6 +44,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/mustafacc/gds_tidy3d',
-    version='0.1.0',
+    version='0.2.0',
     zip_safe=False,
 )
