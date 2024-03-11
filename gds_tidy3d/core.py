@@ -2,7 +2,7 @@
 GDS_Tidy3D integration toolbox.
 
 Core objects module.
-@author: Mustafa Hammood, 2023
+@author: Mustafa Hammood, 2024
 """
 
 import tidy3d as td

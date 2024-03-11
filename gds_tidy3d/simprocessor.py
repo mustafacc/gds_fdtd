@@ -2,7 +2,7 @@
 GDS_Tidy3D integration toolbox.
 
 Tidy3D simulation processing module.
-@author: Mustafa Hammood, 2023
+@author: Mustafa Hammood, 2024
 """
 
 import tidy3d as td
@@ -449,14 +449,13 @@ def get_material(device):
         return td.Medium(permittivity=device["material"] ** 2)
 
 
-def build_sim_from_tech(tech, layout, in_port=0, **kwargs):
-
+def load_component_from_tech(ly, tech, z_span=4, z_center=None):
     # load the structures in the device
     device_wg = []
     for idx, d in enumerate(tech["device"]):
         device_wg.append(
             load_structure(
-                layout,
+                ly,
                 name=f"dev_{idx}",
                 layer=d["layer"],
                 z_base=d["z_base"],
@@ -468,14 +467,14 @@ def build_sim_from_tech(tech, layout, in_port=0, **kwargs):
     device_wg = [dev for dev in device_wg if dev]
 
     # get z_center based on structures center (minimize symmetry failures)
-    z_center = np.average([d[0].z_base + d[0].z_span / 2 for d in device_wg])
-    z_span = kwargs.pop("z_span", 4)  # Default value 4 if z_span is not provided
+    if not z_center:
+        z_center = np.average([d[0].z_base + d[0].z_span / 2 for d in device_wg])
 
     # load all the ports in the device and (optional) initialize each to have a center
-    ports = load_ports(layout, layer=tech["pinrec"][0]["layer"])
+    ports = load_ports(ly, layer=tech["pinrec"][0]["layer"])
     # load the device simulation region
     bounds = load_region(
-        layout, layer=tech["devrec"][0]["layer"], z_center=z_center, z_span=z_span
+        ly, layer=tech["devrec"][0]["layer"], z_center=z_center, z_span=z_span
     )
 
     # make the superstrate and substrate based on device bounds
@@ -496,12 +495,18 @@ def build_sim_from_tech(tech, layout, in_port=0, **kwargs):
     )
 
     # create the device by loading the structures
-    device = component(
-        name=layout.name,
+    return component(
+        name=ly.name,
         structures=[device_sub, device_super] + device_wg,
         ports=ports,
         bounds=bounds,
     )
+
+def build_sim_from_tech(tech: dict, layout, in_port=0, **kwargs):
+
+    z_span = kwargs.pop("z_span", 4)  # Default value 4 if z_span is not provided
+
+    device = load_component_from_tech(ly=layout, tech=tech, z_span=z_span)
 
     if isinstance(in_port, int):
         return make_sim(

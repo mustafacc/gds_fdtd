@@ -2,7 +2,7 @@
 GDS_Tidy3D integration toolbox.
 
 Layout processing module.
-@author: Mustafa Hammood, 2023
+@author: Mustafa Hammood, 2024
 """
 
 from .core import layout, port, structure, region
