@@ -5,15 +5,50 @@ Lumerical tools module.
 @author: Mustafa Hammood, 2024
 """
 
-from gds_tidy3d.core import component
+from gds_tidy3d.core import structure, component
 import logging
 import lumapi
 import numpy as np
 
 m_to_um = 1e-6
 
+def structure_to_lum_poly(
+    s: structure, 
+    lum: lumapi.FDTD,
+    alpha: float=1.,
+    group: bool=False,
+    group_name: str='group',
+):
+    """import a structure objecto to a lumerical instance.
+
+    Args:
+        s (structure): structure to instantiate
+        lum (lumapi.FDTD): lumerical instance
+        alpha (float, optional): transperancy setting. Defaults to 1..
+        group (bool, optional): flag to add the structure to a given group. Defaults to False.
+        group_name (str, optional): group name, if group is True. Defaults to 'group'.
+    """
+    if s.z_span < 0:
+        bounds = (s.z_base + s.z_span, s.z_base)
+    else:
+        bounds = (s.z_base, s.z_base + s.z_span)
+
+    lum.addpoly()
+    lum.set('vertices', m_to_um*np.array(s.polygon))
+    lum.set('x', 0)
+    lum.set('y', 0)
+    lum.set('z min', m_to_um*bounds[0])
+    lum.set('z max', m_to_um*bounds[1])
+    lum.set('name', s.name)
+    lum.set('material', s.material)
+    lum.set('alpha', alpha)
+
+    if group:
+        lum.addtogroup(group_name)
+    lum.eval(f"?'Polygons {s.name} added';")
+
 def to_lumerical(c: component, lum: lumapi.FDTD, tech: dict, buffer: float=2.):
-    """Add an input component with a given tech to a lumerical instance
+    """Add an input component with a given tech to a lumerical instance.
 
     Args:
         c (component): input component.
@@ -32,29 +67,16 @@ def to_lumerical(c: component, lum: lumapi.FDTD, tech: dict, buffer: float=2.):
                 else:
                     bounds = (i.z_base, i.z_base + i.z_span)
 
-                lum.putv("polygon_vertices", m_to_um*np.array(i.polygon))
+                structure_to_lum_poly(s=i, lum=lum, group=True, group_name='device')
 
-                make_poly = f" \
-                addpoly; set('vertices',polygon_vertices); \
-                set('material', '{i.material}'); set('name', '{i.name}'); set('z min', {m_to_um*bounds[0]}); set('x',0); set('y',0); set('z max',{m_to_um*bounds[1]});    \
-                addtogroup('device'); \
-                ?'Device Polygons added';"
-
-                lum.eval(make_poly)
         # if structure is not a list then its a region
         else:
             if s.z_span < 0:
                 bounds = (s.z_base + s.z_span, s.z_base)
             else:
                 bounds = (s.z_base, s.z_base + s.z_span)
-            lum.putv("polygon_vertices", m_to_um*np.array(s.polygon))
 
-            make_poly = f" \
-            addpoly; set('vertices',polygon_vertices); \
-            set('material', '{s.material}'); set('name', '{s.name}'); set('z min', {m_to_um*bounds[0]}); set('x',0); set('y',0); set('z max',{m_to_um*bounds[1]});    \
-            set('alpha',0.5); ?'Process regions added';"
-
-            lum.eval(make_poly)
+            structure_to_lum_poly(s=s, lum=lum, alpha=0.5)
 
     # extend ports beyond sim region
     for p in c.ports:
@@ -87,32 +109,17 @@ def to_lumerical(c: component, lum: lumapi.FDTD, tech: dict, buffer: float=2.):
                 [p.center[0] + p.width / 2, p.center[1]],
             ]
 
-        lum.putv("polygon_vertices", m_to_um*np.array(pts))
+        lum.addpoly()
+        lum.set('vertices', m_to_um*np.array(pts))
+        lum.set('x', 0)
+        lum.set('y', 0)
+        lum.set('z min', m_to_um*(p.center[2] - p.height / 2))
+        lum.set('z max', m_to_um*(p.center[2] + p.height / 2))
+        lum.set('name', p.name)
+        lum.set('material', p.material)
+        lum.addtogroup('ports')
+        lum.eval(f"?'port {p.name} added';")
 
-        make_poly = f" \
-        addpoly; set('vertices',polygon_vertices); \
-        set('material', '{p.material}'); set('name', '{p.name}'); set('z min', {m_to_um*(p.center[2] - p.height / 2)}); set('x',0); set('y',0); set('z max',{m_to_um*(p.center[2] + p.height / 2)});    \
-        addtogroup('ports'); ?'Process regions added';"
-
-        lum.eval(make_poly)
-    """
-        structures.append(
-            td.Structure(
-                geometry=td.PolySlab(
-                    vertices=pts,
-                    slab_bounds=(
-                        p.center[2] - p.height / 2,
-                        p.center[2] + p.height / 2,
-                    ),
-                    axis=2,
-                    sidewall_angle=(90 - device.structures[0].sidewall_angle)
-                    * (np.pi / 180),
-                ),
-                medium=p.material,
-                name=f"port_{p.name}",
-            )
-        )
-    """
     return structures
 
 
