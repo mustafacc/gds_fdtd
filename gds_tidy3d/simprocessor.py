@@ -7,6 +7,7 @@ Tidy3D simulation processing module.
 
 import tidy3d as td
 import numpy as np
+import gdsfactory as gf 
 from .core import structure, region, port, component, Simulation
 from .lyprocessor import (
     load_structure,
@@ -500,13 +501,23 @@ def build_sim_from_tech(tech: dict, layout, in_port=0, **kwargs):
         )
 
 
-def from_gdsfactory(c, tech: dict, in_port: int = 0, **kwargs):
+def from_gdsfactory(c: gf.Component, tech: dict, z_span: float=4.) -> component:
+    """Convert gdsfactory Component to a component.
+
+    Args:
+        c (gf.Component): gdsfactory component.
+        tech (dict): dictionary technology stack (can be parsed from yaml) 
+        z_span (float, optional): z bounds of the device (can be used to override simulation settings..). Defaults to 4..
+
+    Returns:
+        component: parsed gdsfactory component.
+    """
     device_wg = []
     ports = []
 
     # for each layer in the device
     for idx, layer in enumerate(c.get_layers()):
-        l = c.extract(layers={layer})
+        l = c.extract(layers={layer})       
 
         for i, s in enumerate(l.get_polygons()):
             name = f"poly_{idx}_{i}"
@@ -538,7 +549,6 @@ def from_gdsfactory(c, tech: dict, in_port: int = 0, **kwargs):
 
     # get z_center based on structures center (minimize symmetry failures)
     z_center = np.average([d.z_base + d.z_span / 2 for d in device_wg])
-    z_span = kwargs.pop("z_span", 4)  # Default value 4 if z_span is not provided
 
     # expand bbox region to account for evanescent field
     def min_dim(square):
@@ -553,7 +563,7 @@ def from_gdsfactory(c, tech: dict, in_port: int = 0, **kwargs):
 
     # expand the bbox region by 1.3 um (on each side) on the smallest dimension
     bbox = dilate_1d(c.bbox.tolist(), extension=0, dim=min_dim(c.bbox.tolist()))
-    bbox_dilated = dilate(bbox)
+    bbox_dilated = dilate(bbox, extension=1.3)
     bounds = region(vertices=bbox_dilated, z_center=z_center, z_span=z_span)
 
     # make the superstrate and substrate based on device bounds
@@ -574,16 +584,9 @@ def from_gdsfactory(c, tech: dict, in_port: int = 0, **kwargs):
     )
 
     # create the device by loading the structures
-    device = component(
+    return component(
         name=c.name,
         structures=[device_sub, device_super] + [device_wg],
         ports=ports,
         bounds=bounds,
-    )
-
-    return make_sim(
-        device=device,
-        in_port=device.ports[in_port],
-        z_span=z_span,
-        **kwargs,
     )
