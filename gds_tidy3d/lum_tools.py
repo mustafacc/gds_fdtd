@@ -33,27 +33,31 @@ def structure_to_lum_poly(
     else:
         bounds = (s.z_base, s.z_base + s.z_span)
 
-    lum.addpoly()
-    lum.set('vertices', m_to_um*np.array(s.polygon))
-    lum.set('x', 0)
-    lum.set('y', 0)
-    lum.set('z min', m_to_um*bounds[0])
-    lum.set('z max', m_to_um*bounds[1])
-    lum.set('name', s.name)
-    lum.set('material', s.material)
-    lum.set('alpha', alpha)
+    print(f"type: {type(s.material)}")
+    print(f"val: {s.material}")
+    poly = lum.addpoly(
+        vertices=m_to_um*np.array(s.polygon),
+        x=0,
+        y=0,
+        z_min=m_to_um*bounds[0],
+        z_max=m_to_um*bounds[1],
+        name=s.name,
+        material=s.material,
+        alpha=alpha,
+    )
 
     if group:
         lum.addtogroup(group_name)
     lum.eval(f"?'Polygons {s.name} added';")
 
-def to_lumerical(c: component, lum: lumapi.FDTD, tech: dict, buffer: float=2.):
+    return poly
+
+def to_lumerical(c: component, lum: lumapi.FDTD, buffer: float=2.):
     """Add an input component with a given tech to a lumerical instance.
 
     Args:
         c (component): input component.
         lum (lumapi.FDTD): lumerical FDTD instance.
-        tech (dict): technology dictionary
     """
 
     # TODO fix box tox handling here

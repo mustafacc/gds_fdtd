@@ -44,7 +44,7 @@ class layout:
 
 
 class port:
-    def __init__(self, name, center, width, direction):
+    def __init__(self, name: str, center: list[float, float], width: float, direction: float):
         self.name = name
         self.center = center
         self.width = width
@@ -103,14 +103,13 @@ class port:
             ]
 
 class structure:
-    def __init__(self, name, polygon, z_base, z_span, material, sidewall_angle=90):
+    def __init__(self, name: str, polygon: list[list[float, float]], z_base: float, z_span: float, material: str, sidewall_angle: float=90.):
         self.name = name
-        self.polygon = polygon
+        self.polygon = polygon  # polygon should be in the form of list of list of 2 pts, i.e. [[0,0],[0,1],[1,1]]
         self.z_base = z_base
         self.z_span = z_span
         self.material = material
         self.sidewall_angle = sidewall_angle
-
 
 class region:
     def __init__(self, vertices, z_center, z_span):
