@@ -62,24 +62,31 @@ def to_lumerical(c: component, lum: lumapi.FDTD, tech: dict, buffer: float=2.):
         # if structure is a list then its a device (could have multiple polygons inside)
         if type(s) == list:
             for i in s:
-                structure_to_lum_poly(s=i, lum=lum, group=True, group_name='device')
+                structures.append(structure_to_lum_poly(s=i, lum=lum, group=True, group_name='device'))
 
         # if structure is not a list then its a region
         else:
-            structure_to_lum_poly(s=s, lum=lum, alpha=0.5)
+            structures.append(structure_to_lum_poly(s=s, lum=lum, alpha=0.5))
 
     # extend ports beyond sim region
     for p in c.ports:
-        lum.addpoly()
-        lum.set('vertices', m_to_um*np.array(p.polygon_extension(buffer=buffer)))
-        lum.set('x', 0)
-        lum.set('y', 0)
-        lum.set('z min', m_to_um*(p.center[2] - p.height / 2))
-        lum.set('z max', m_to_um*(p.center[2] + p.height / 2))
-        lum.set('name', p.name)
-        lum.set('material', p.material)
+        structures.append(lum.addpoly(
+            vertices=m_to_um*np.array(p.polygon_extension(buffer=buffer)),
+            x=0,
+            y=0,
+            z_min=m_to_um*(p.center[2] - p.height / 2),
+            z_max=m_to_um*(p.center[2] + p.height / 2),
+            name=p.name,
+            material=p.material,
+        ))
+
         lum.addtogroup('ports')
         lum.eval(f"?'port {p.name} added';")
 
     return structures
 
+def setup_lum_fdtd(
+    c: component,
+    lum: lumapi.FDTD,
+):
+    pass
