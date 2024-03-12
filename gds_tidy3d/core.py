@@ -72,6 +72,35 @@ class port:
         """index of the port, extracted from name."""
         return int("".join(char for char in reversed(self.name) if char.isdigit()))
 
+    def polygon_extension(self, buffer: float=2.):
+        if self.direction == 0:
+            return [
+                [self.center[0], self.center[1] + self.width / 2],
+                [self.center[0] + buffer, self.center[1] + self.width / 2],
+                [self.center[0] + buffer, self.center[1] - self.width / 2],
+                [self.center[0], self.center[1] - self.width / 2],
+            ]
+        elif self.direction == 180:
+            return [
+                [self.center[0], self.center[1] + self.width / 2],
+                [self.center[0] - buffer, self.center[1] + self.width / 2],
+                [self.center[0] - buffer, self.center[1] - self.width / 2],
+                [self.center[0], self.center[1] - self.width / 2],
+            ]
+        elif self.direction == 90:
+            return [
+                [self.center[0] - self.width / 2, self.center[1]],
+                [self.center[0] - self.width / 2, self.center[1] + buffer],
+                [self.center[0] + self.width / 2, self.center[1] + buffer],
+                [self.center[0] + self.width / 2, self.center[1]],
+            ]
+        elif self.direction == 270:
+            return [
+                [self.center[0] - self.width / 2, self.center[1]],
+                [self.center[0] - self.width / 2, self.center[1] - buffer],
+                [self.center[0] + self.width / 2, self.center[1] - buffer],
+                [self.center[0] + self.width / 2, self.center[1]],
+            ]
 
 class structure:
     def __init__(self, name, polygon, z_base, z_span, material, sidewall_angle=90):

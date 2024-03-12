@@ -134,39 +134,10 @@ def make_structures(device, buffer: float=2.):
 
     # extend ports beyond sim region
     for p in device.ports:
-        if p.direction == 0:
-            pts = [
-                [p.center[0], p.center[1] + p.width / 2],
-                [p.center[0] + buffer, p.center[1] + p.width / 2],
-                [p.center[0] + buffer, p.center[1] - p.width / 2],
-                [p.center[0], p.center[1] - p.width / 2],
-            ]
-        elif p.direction == 180:
-            pts = [
-                [p.center[0], p.center[1] + p.width / 2],
-                [p.center[0] - buffer, p.center[1] + p.width / 2],
-                [p.center[0] - buffer, p.center[1] - p.width / 2],
-                [p.center[0], p.center[1] - p.width / 2],
-            ]
-        elif p.direction == 90:
-            pts = [
-                [p.center[0] - p.width / 2, p.center[1]],
-                [p.center[0] - p.width / 2, p.center[1] + buffer],
-                [p.center[0] + p.width / 2, p.center[1] + buffer],
-                [p.center[0] + p.width / 2, p.center[1]],
-            ]
-        elif p.direction == 270:
-            pts = [
-                [p.center[0] - p.width / 2, p.center[1]],
-                [p.center[0] - p.width / 2, p.center[1] - buffer],
-                [p.center[0] + p.width / 2, p.center[1] - buffer],
-                [p.center[0] + p.width / 2, p.center[1]],
-            ]
-
         structures.append(
             td.Structure(
                 geometry=td.PolySlab(
-                    vertices=pts,
+                    vertices=p.polygon_extension(buffer=buffer),
                     slab_bounds=(
                         p.center[2] - p.height / 2,
                         p.center[2] + p.height / 2,
