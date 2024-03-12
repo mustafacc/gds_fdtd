@@ -80,7 +80,7 @@ def make_source(
     return msource
 
 
-def make_structures(device, buffer=2):
+def make_structures(device, buffer: float=2.):
     """Create a tidy3d structure object from a device objcet.
 
     Args:
@@ -443,11 +443,16 @@ def make_sim(
 
 
 def get_material(device):
+    # TODO: find a better way to handle this... maybe use opticalmaterialspy?
+    # load material from tidy3d material database, format [material, model]
     if device["material_type"] == "tidy3d_db":
         return td.material_library[device["material"][0]][device["material"][1]]
+    # load tidy3d constant index material, format: refractive index
     elif device["material_type"] == "nk":
         return td.Medium(permittivity=device["material"] ** 2)
-
+    # load material from lumerical material database, format: material model name
+    elif device["material_type"] == "lum_db":
+        return device["material"]
 
 def load_component_from_tech(ly, tech, z_span=4, z_center=None):
     # load the structures in the device

@@ -36,3 +36,5 @@ if __name__ == "__main__":
     simulation.execute()
     #  visualize the results
     simulation.visualize_results()
+
+# %%
