@@ -31,10 +31,10 @@ def test_parse_yaml_tech():
     expected_output = {
         "name": "EBeam",
         "substrate": [
-            {"z_base": 0.0, "z_span": -2, "material_type": "nk", "material": 1.48}
+            {"z_base": 0.0, "z_span": -2, "material": {"tidy3d_db": {"nk": 1.48}}}
         ],
         "superstrate": [
-            {"z_base": 0.0, "z_span": 3, "material_type": "nk", "material": 1.48}
+            {"z_base": 0.0, "z_span": 3, "material": {"tidy3d_db": {"nk": 1.48}}}
         ],
         "pinrec": [{"layer": [1, 10]}],
         "devrec": [{"layer": [68, 0]}],
@@ -43,16 +43,14 @@ def test_parse_yaml_tech():
                 "layer": [1, 0],
                 "z_base": 0.0,
                 "z_span": 0.22,
-                "material_type": "tidy3d_db",
-                "material": ["cSi", "Li1993_293K"],
+                "material": {"tidy3d_db": {"model": ["cSi", "Li1993_293K"]}},
                 "sidewall_angle": 85,
             },
             {
                 "layer": [1, 5],
                 "z_base": 0.3,
                 "z_span": 0.22,
-                "material_type": "tidy3d_db",
-                "material": ["Si3N4", "Philipp1973Sellmeier"],
+                "material": {"tidy3d_db": {"model": ["Si3N4", "Philipp1973Sellmeier"]}},
                 "sidewall_angle": 80,
             },
         ],

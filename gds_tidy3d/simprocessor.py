@@ -416,15 +416,18 @@ def make_sim(
 
 def get_material(device):
     # TODO: find a better way to handle this... maybe use opticalmaterialspy?
-    # load material from tidy3d material database, format [material, model]
-    if device["material_type"] == "tidy3d_db":
-        return td.material_library[device["material"][0]][device["material"][1]]
-    # load tidy3d constant index material, format: refractive index
-    elif device["material_type"] == "nk":
-        return td.Medium(permittivity=device["material"] ** 2)
-    # load material from lumerical material database, format: material model name
-    elif device["material_type"] == "lum_db":
-        return device["material"]
+    if "tidy3d_db" in device["material"]:
+        # load material from tidy3d material database, format [material, model]
+        if "model" in device["material"]["tidy3d_db"]:
+            return td.material_library[device["material"]["tidy3d_db"]["model"][0]][device["material"]["tidy3d_db"]["model"][1]]
+        # load tidy3d constant index material, format: refractive index
+        elif "nk" in device["material"]["tidy3d_db"]:
+            return td.Medium(permittivity=device["material"]["tidy3d_db"]["nk"] ** 2)
+    
+    elif "lum_db" in device["material"]:
+        # load material from lumerical material database, format: material model name
+        if "model" in device["material"]["lum_db"]:
+            return device["material"]["lum_db"]["model"]
 
 def load_component_from_tech(ly, tech, z_span=4, z_center=None):
     # load the structures in the device

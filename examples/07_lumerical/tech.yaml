@@ -4,15 +4,17 @@ technology:
   substrate:
       z_base: 0.0
       z_span: -2
-      material_type: lum_db
-      material: SiO2 (Glass) - Palik
+      material:
+        lum_db:
+          model: SiO2 (Glass) - Palik
 
   superstrate:
       z_base: 0.0
       z_span: 3
-      material_type: lum_db
-      material: SiO2 (Glass) - Palik
-
+      material:
+        lum_db:
+          model: SiO2 (Glass) - Palik
+  
   pinrec:
     - layer: [1, 10]
 
@@ -23,13 +25,15 @@ technology:
     - layer: [1, 0]
       z_base: 0.0
       z_span: 0.22
-      material_type: lum_db
-      material: Si (Silicon) - Palik
+      material:
+        lum_db:
+          model: Si (Silicon) - Palik
       sidewall_angle: 85
 
     - layer: [1, 5]
       z_base: .3
       z_span: 0.22
-      material_type: lum_db
-      material: Si3N4 (Silicon Nitride) - Phillip
+      material:
+        lum_db:
+          model: Si3N4 (Silicon Nitride) - Phillip
       sidewall_angle: 80

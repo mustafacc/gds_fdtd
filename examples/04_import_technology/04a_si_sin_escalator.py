@@ -16,6 +16,8 @@ if __name__ == "__main__":
 
     layout = gtd.lyprocessor.load_layout(file_gds)
 
+    device = gtd.simprocessor.load_component_from_tech(ly=layout, tech=technology, z_span=4)
+
     simulation = gtd.simprocessor.build_sim_from_tech(
         tech=technology,
         layout=layout,
@@ -31,10 +33,10 @@ if __name__ == "__main__":
         z_span=4,
         field_monitor_axis="y",
     )
-    simulation.upload()
+    #simulation.upload()
     # run the simulation. CHECK THE SIMULATION IN THE UI BEFORE RUNNING!
-    simulation.execute()
+    #simulation.execute()
     #  visualize the results
-    simulation.visualize_results()
+    #simulation.visualize_results()
 
 # %%

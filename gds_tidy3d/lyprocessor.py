@@ -7,7 +7,7 @@ Layout processing module.
 
 from .core import layout, port, structure, region
 import logging
-
+import klayout.db as pya
 
 def dilate(vertices, extension=1.3):
     """grow or shrink a rectangle defined as [[x1,y1],[x2,y2]]
@@ -52,7 +52,7 @@ def dilate_1d(vertices, extension=1, dim="y"):
     else:
         raise ValueError("Dimension must be 'x' or 'y' or 'xy'")
 
-def load_layout(fname):
+def load_layout(fname: str):
     import klayout.db as pya
 
     ly = pya.Layout()
@@ -66,7 +66,7 @@ def load_layout(fname):
     return layout(name, ly, cell)
 
 
-def load_region(layout, layer=[68, 0], z_center=0, z_span=5, extension=1.3):
+def load_region(layout: layout, layer: list[int, int]=[68, 0], z_center: float=0., z_span: float=5., extension: float=1.3):
     """
     Get device bounds.
 
@@ -90,8 +90,6 @@ def load_region(layout, layer=[68, 0], z_center=0, z_span=5, extension=1.3):
 
     def get_kdb_layer(layer):
         return layout.ly.layer(layer[0], layer[1])
-
-    import klayout.db as pya
 
     c = layout.cell
     dbu = layout.dbu
@@ -198,7 +196,7 @@ def load_structure_from_bounds(bounds, name, z_base, z_span, material, extension
     )
 
 
-def load_ports(layout, layer=[1, 10]):
+def load_ports(layout: pya.Layout, layer: list[int, int]=[1, 10]):
     """Load ports from layout.
 
     Args:

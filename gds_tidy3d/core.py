@@ -7,7 +7,7 @@ Core objects module.
 
 import tidy3d as td
 import logging
-
+import os
 
 def is_point_inside_polygon(point, polygon_points):
     """Identify if a point inside a polygon using Shapely.
@@ -252,8 +252,10 @@ class Simulation:
         self.s_parameters = s_parameters()
 
         for sim_job in self.sim_jobs:
+            if not os.path.exists(self.device.name):
+                os.makedirs(self.device.name)
             self.results = sim_job["job"].run(
-                path=f"{self.device.name}/{sim_job['name']}.hdf5"
+                path=os.path.join(self.device.name, f"{sim_job['name']}.hdf5")
             )
             for mode in range(sim_job["num_modes"]):
                 amps_arms = measure_transmission(
@@ -380,7 +382,6 @@ def parse_yaml_tech(file_path):
         {
             "z_base": substrate.get("z_base"),
             "z_span": substrate.get("z_span"),
-            "material_type": substrate.get("material_type"),
             "material": substrate.get("material"),
         }
     )
@@ -391,7 +392,6 @@ def parse_yaml_tech(file_path):
         {
             "z_base": superstrate.get("z_base"),
             "z_span": superstrate.get("z_span"),
-            "material_type": superstrate.get("material_type"),
             "material": superstrate.get("material"),
         }
     )
@@ -412,7 +412,6 @@ def parse_yaml_tech(file_path):
             "layer": device.get("layer"),
             "z_base": device.get("z_base"),
             "z_span": device.get("z_span"),
-            "material_type": device.get("material_type"),
             "material": device.get("material"),
             "sidewall_angle": device.get("sidewall_angle"),
         }
