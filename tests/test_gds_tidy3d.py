@@ -503,8 +503,10 @@ def test_make_sim():
 def test_get_material():
     file_path = os.path.join(os.path.dirname(__file__), "tech.yaml")
     device = core.parse_yaml_tech(file_path)
-    assert isinstance(simprocessor.get_material(device["substrate"][0]), td.Medium)
-    assert isinstance(simprocessor.get_material(device["device"][0]), td.PoleResidue)
+    mat_substrate_tidy3d = simprocessor.get_material(device["substrate"][0])
+    mat_device_tidy3d = simprocessor.get_material(device["device"][0])
+    assert isinstance(mat_substrate_tidy3d['tidy3d'], td.Medium)
+    assert isinstance(mat_device_tidy3d['tidy3d'], td.PoleResidue)
 
 
 def test_build_sim_from_tech():

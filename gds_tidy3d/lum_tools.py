@@ -33,8 +33,6 @@ def structure_to_lum_poly(
     else:
         bounds = (s.z_base, s.z_base + s.z_span)
 
-    print(f"type: {type(s.material)}")
-    print(f"val: {s.material}")
     poly = lum.addpoly(
         vertices=m_to_um*np.array(s.polygon),
         x=0,
@@ -42,7 +40,7 @@ def structure_to_lum_poly(
         z_min=m_to_um*bounds[0],
         z_max=m_to_um*bounds[1],
         name=s.name,
-        material=s.material,
+        material=s.material["lum"] if isinstance(s.material, dict) else s.material,
         alpha=alpha,
     )
 
@@ -81,7 +79,7 @@ def to_lumerical(c: component, lum: lumapi.FDTD, buffer: float=2.):
             z_min=m_to_um*(p.center[2] - p.height / 2),
             z_max=m_to_um*(p.center[2] + p.height / 2),
             name=p.name,
-            material=p.material,
+            material=p.material["lum"] if isinstance(p.material, dict) else p.material,
         ))
 
         lum.addtogroup('ports')

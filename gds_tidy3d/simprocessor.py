@@ -7,6 +7,7 @@ Tidy3D simulation processing module.
 
 import tidy3d as td
 import numpy as np
+import matplotlib.pyplot as plt
 import gdsfactory as gf 
 from .core import structure, region, port, component, Simulation
 from .lyprocessor import (
@@ -94,6 +95,8 @@ def make_structures(device, buffer: float=2.):
     import tidy3d as td
     import numpy as np
 
+    # TODO find a better way to handle material..
+    
     # TODO fix box tox handling here
     structures = []
     for s in device.structures:
@@ -111,7 +114,7 @@ def make_structures(device, buffer: float=2.):
                             axis=2,
                             sidewall_angle=(90 - i.sidewall_angle) * (np.pi / 180),
                         ),
-                        medium=i.material,
+                        medium=i.material["tidy3d"] if isinstance(i.material, dict) else i.material,
                         name=i.name,
                     )
                 )
@@ -120,6 +123,7 @@ def make_structures(device, buffer: float=2.):
                 bounds = (s.z_base + s.z_span, s.z_base)
             else:
                 bounds = (s.z_base, s.z_base + s.z_span)
+            print(s.material["tidy3d"] if isinstance(s.material, dict) else s.material)
             structures.append(
                 td.Structure(
                     geometry=td.PolySlab(
@@ -128,7 +132,7 @@ def make_structures(device, buffer: float=2.):
                         axis=2,
                         sidewall_angle=(90 - s.sidewall_angle) * (np.pi / 180),
                     ),
-                    medium=s.material,
+                    medium=s.material["tidy3d"] if isinstance(s.material, dict) else s.material,
                     name=s.name,
                 )
             )
@@ -147,7 +151,7 @@ def make_structures(device, buffer: float=2.):
                     sidewall_angle=(90 - device.structures[0].sidewall_angle)
                     * (np.pi / 180),
                 ),
-                medium=p.material,
+                medium=p.material["tidy3d"] if isinstance(p.material, dict) else p.material,
                 name=f"port_{p.name}",
             )
         )
@@ -283,9 +287,6 @@ def make_sim(
         simulation: Generated simulation instance.
     """
 
-    import numpy as np
-    import matplotlib.pyplot as plt
-
     # if no input port defined, use first as default
     if in_port is None:
         in_port = [device.ports[0]]
@@ -414,20 +415,29 @@ def make_sim(
     return simulation
 
 
-def get_material(device):
-    # TODO: find a better way to handle this... maybe use opticalmaterialspy?
+def get_material(device: dict):
+    """
+    TODO: find a better way to handle this
+    maybe use opticalmaterialspy as a universal base?
+    """
+    material = {'tidy3d': None, 'lum': None}
     if "tidy3d_db" in device["material"]:
         # load material from tidy3d material database, format [material, model]
         if "model" in device["material"]["tidy3d_db"]:
-            return td.material_library[device["material"]["tidy3d_db"]["model"][0]][device["material"]["tidy3d_db"]["model"][1]]
+            mat_tidy3d = td.material_library[device["material"]["tidy3d_db"]["model"][0]][device["material"]["tidy3d_db"]["model"][1]]
         # load tidy3d constant index material, format: refractive index
         elif "nk" in device["material"]["tidy3d_db"]:
-            return td.Medium(permittivity=device["material"]["tidy3d_db"]["nk"] ** 2)
-    
+            mat_tidy3d = td.Medium(permittivity=device["material"]["tidy3d_db"]["nk"] ** 2)
+        material['tidy3d'] = mat_tidy3d
+
     elif "lum_db" in device["material"]:
         # load material from lumerical material database, format: material model name
         if "model" in device["material"]["lum_db"]:
-            return device["material"]["lum_db"]["model"]
+            mat_lum = device["material"]["lum_db"]["model"]
+        material['lum'] = mat_lum
+
+    return material
+
 
 def load_component_from_tech(ly, tech, z_span=4, z_center=None):
     # load the structures in the device
