@@ -6,6 +6,8 @@ from gds_tidy3d.core import parse_yaml_tech
 from gds_tidy3d.simprocessor import load_component_from_tech
 from gds_tidy3d.lyprocessor import load_layout
 
+os.environ['QT_QPA_PLATFORM'] = 'xcb'  # i need to do this to get my lumerical gui to work in linux... comment out if not necessary
+
 if __name__ == "__main__":
     tech_path = os.path.join(os.path.dirname(__file__), "tech.yaml")  # note materials in yaml
     technology = parse_yaml_tech(tech_path)
@@ -17,4 +19,5 @@ if __name__ == "__main__":
     fdtd = lumapi.FDTD()  # can also be mode/device
 
     to_lumerical(c=component, lum=fdtd)
+    input('Proceed to terminate the GUI?')
 # %%

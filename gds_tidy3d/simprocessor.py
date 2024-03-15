@@ -430,7 +430,7 @@ def get_material(device: dict):
             mat_tidy3d = td.Medium(permittivity=device["material"]["tidy3d_db"]["nk"] ** 2)
         material['tidy3d'] = mat_tidy3d
 
-    elif "lum_db" in device["material"]:
+    if "lum_db" in device["material"]:
         # load material from lumerical material database, format: material model name
         if "model" in device["material"]["lum_db"]:
             mat_lum = device["material"]["lum_db"]["model"]

@@ -9,6 +9,7 @@ import tidy3d as td
 import logging
 import os
 
+
 def is_point_inside_polygon(point, polygon_points):
     """Identify if a point inside a polygon using Shapely.
 
@@ -44,7 +45,9 @@ class layout:
 
 
 class port:
-    def __init__(self, name: str, center: list[float, float], width: float, direction: float):
+    def __init__(
+        self, name: str, center: list[float, float], width: float, direction: float
+    ):
         self.name = name
         self.center = center
         self.width = width
@@ -72,7 +75,7 @@ class port:
         """index of the port, extracted from name."""
         return int("".join(char for char in reversed(self.name) if char.isdigit()))
 
-    def polygon_extension(self, buffer: float=2.):
+    def polygon_extension(self, buffer: float = 2.0):
         if self.direction == 0:
             return [
                 [self.center[0], self.center[1] + self.width / 2],
@@ -102,14 +105,24 @@ class port:
                 [self.center[0] + self.width / 2, self.center[1]],
             ]
 
+
 class structure:
-    def __init__(self, name: str, polygon: list[list[float, float]], z_base: float, z_span: float, material: str, sidewall_angle: float=90.):
+    def __init__(
+        self,
+        name: str,
+        polygon: list[list[float, float]],
+        z_base: float,
+        z_span: float,
+        material: str,
+        sidewall_angle: float = 90.0,
+    ):
         self.name = name
         self.polygon = polygon  # polygon should be in the form of list of list of 2 pts, i.e. [[0,0],[0,1],[1,1]]
         self.z_base = z_base
         self.z_span = z_span
         self.material = material
         self.sidewall_angle = sidewall_angle
+
 
 class region:
     def __init__(self, vertices, z_center, z_span):
@@ -226,10 +239,11 @@ class Simulation:
         def get_port_name(port):
             return [int(i) for i in port if i.isdigit()][0]
 
-        def measure_transmission(in_port, in_mode_idx, out_mode_idx):
+        def measure_transmission(
+            in_port: port, in_mode_idx: int, out_mode_idx: int
+        ):
             """
             Constructs a "row" of the scattering matrix.
-            TODO: Handle multiple number of modes, currently crashes workflow
             """
             num_ports = np.size(self.device.ports)
             input_amp = self.results[in_port.name].amps.sel(
@@ -327,7 +341,7 @@ class s_parameters:
 
         for s in input_entries:
             if s.idx_in == idx_in and s.idx_out == idx_out:
-                entries.append(s)            
+                entries.append(s)
         return entries
 
     def plot(self):
