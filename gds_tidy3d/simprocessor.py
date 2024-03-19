@@ -82,7 +82,7 @@ def make_source(
     return msource
 
 
-def make_structures(device, buffer: float=2.):
+def make_structures(device, buffer: float=4.):
     """Create a tidy3d structure object from a device objcet.
 
     Args:
@@ -576,7 +576,7 @@ def from_gdsfactory(c: gf.Component, tech: dict, z_span: float=4.) -> component:
 
     # expand the bbox region by 1.3 um (on each side) on the smallest dimension
     bbox = dilate_1d(c.bbox.tolist(), extension=0, dim=min_dim(c.bbox.tolist()))
-    bbox_dilated = dilate(bbox, extension=1.3)
+    bbox_dilated = dilate(bbox, extension=1.9)
     bounds = region(vertices=bbox_dilated, z_center=z_center, z_span=z_span)
 
     # make the superstrate and substrate based on device bounds

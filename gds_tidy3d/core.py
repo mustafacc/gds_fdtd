@@ -7,6 +7,8 @@ Core objects module.
 
 import tidy3d as td
 import logging
+import numpy as np
+import matplotlib.pyplot as plt
 import os
 
 
@@ -75,7 +77,7 @@ class port:
         """index of the port, extracted from name."""
         return int("".join(char for char in reversed(self.name) if char.isdigit()))
 
-    def polygon_extension(self, buffer: float = 2.0):
+    def polygon_extension(self, buffer: float = 4.0):
         if self.direction == 0:
             return [
                 [self.center[0], self.center[1] + self.width / 2],
@@ -212,7 +214,6 @@ class Simulation:
         from tidy3d import web
 
         # divide between job and sim, how to attach them?
-
         for sim_job in self.sim_jobs:
             sim = sim_job["sim"]
             name = sim_job["name"]
@@ -293,7 +294,7 @@ class Simulation:
                             idx_out=get_port_name(monitor.name),
                             mode_in=sim_job["source"].mode_index,
                             mode_out=mode,
-                            freq=td.C_0 / wavl,
+                            freq=td.C_0 / (wavl*1e-6),  # convert back to SI. (m)
                             s=amp,
                         )
                     )
@@ -323,6 +324,10 @@ class s_parameters:
         else:
             self._entries = entries
         return
+
+    @property
+    def S(self):
+        return dict(zip([i.label for i in self._entries], self._entries))
 
     def add_param(self, sparam):
         self._entries.append(sparam)
@@ -373,6 +378,12 @@ class sparam:
     def label(self):
         return f"S{self.idx_out}{self.idx_in}_idx{self.mode_out}{self.mode_in}"
 
+    def plot_freq_vs_s(self):
+        plt.plot(np.array(self.freq)/(1e-6*td.C_0), 10*np.log10(self.s**2))
+        plt.xlabel('Wavelength [um]')
+        plt.ylabel('Transmission [dB]')
+        plt.title('Frequency vs S')
+        plt.show()
 
 def parse_yaml_tech(file_path):
     import yaml

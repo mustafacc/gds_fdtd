@@ -15,6 +15,7 @@ if __name__ == '__main__':
         in_port=device.ports[0],
         z_span=2.,
         symmetry=(0, 0, 1),
+        mode_index=0,
     )
     # %%
     simulation.upload()
