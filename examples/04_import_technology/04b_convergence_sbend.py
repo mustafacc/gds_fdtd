@@ -19,9 +19,9 @@ def convergence_z_span(
     sims = []
 
     for z in z_span:
-        device = gtd.simprocessor.load_component_from_tech(ly=layout, tech=technology, z_span=z)
+        device = gtd.simprocessor.load_component_from_tech(ly=layout, tech=tech, z_span=z)
         sims.append(gtd.simprocessor.build_sim_from_tech(
-            tech=technology,
+            tech=tech,
             layout=layout,
             in_port=0,
             wavl_min=1.545,
@@ -35,6 +35,7 @@ def convergence_z_span(
                 0,
             ),  # ensure structure is symmetric across symmetry axis before triggering this!
             z_span=z,
+            visualize=False,
         ))
     
         sims[-1].upload()
@@ -51,13 +52,122 @@ def convergence_z_span(
     for idx, sim in enumerate(sims):
         s_te = sim.s_parameters.S[s12_te].s
         s_tm = sim.s_parameters.S[s12_tm].s
-        f = sim.s_parameters.S[s12_te].freq
         te_log.append(10*np.log10(np.abs(s_te[len(s_te) // 2])**2))  # middle
-        tm_log.append(10*np.log10(np.abs(s_tm[len(s_tm) // 2])**2))  # middle  entry        ax.plot(z_span, te_log, 'x-', label="TE", color='b')
+        tm_log.append(10*np.log10(np.abs(s_tm[len(s_tm) // 2])**2))  # middle  entry
     ax.plot(z_span, te_log, 'x-', label="TE", color='r')
-    ax.plot(z_span, tm_log, 'x-', label="TM", color='r')
+    ax.plot(z_span, tm_log, 'x-', label="TM", color='b')
     ax.legend()
     ax.set_xlabel('z_span [um]')
+    ax.set_ylabel(f'Transmission [dB]')
+
+    return sims
+
+
+def convergence_port_width(
+    layout: gtd.core.layout,
+    tech: dict,
+    port_width: list=np.logspace(np.log10(0.51), np.log10(3), num=12)):
+
+    sims_port_width = []
+    sims = []
+
+    for w in port_width:
+        device = gtd.simprocessor.load_component_from_tech(ly=layout, tech=tech, z_span=2)
+        sims.append(gtd.simprocessor.build_sim_from_tech(
+            tech=tech,
+            layout=layout,
+            in_port=0,
+            wavl_min=1.545,
+            wavl_max=1.555,
+            wavl_pts=51,
+            mode_index=[0,1],
+            num_modes=2,
+            width_ports=w,
+            symmetry=(
+                0,
+                0,
+                0,
+            ),  # ensure structure is symmetric across symmetry axis before triggering this!
+            z_span=2,
+            visualize=False,
+        ))
+    
+        sims[-1].upload()
+        # run the simulation. CHECK THE SIMULATION IN THE UI BEFORE RUNNING!
+        sims[-1].execute()
+        #  visualize the results
+        #sims[-1].visualize_results()     
+
+
+    fig, ax = plt.subplots()
+    te_log = []
+    tm_log = []
+    s12_te = 'S12_idx00'
+    s12_tm = 'S12_idx11'
+    for idx, sim in enumerate(sims):
+        s_te = sim.s_parameters.S[s12_te].s
+        s_tm = sim.s_parameters.S[s12_tm].s
+        te_log.append(10*np.log10(np.abs(s_te[len(s_te) // 2])**2))  # middle
+        tm_log.append(10*np.log10(np.abs(s_tm[len(s_tm) // 2])**2))  # middle  entry
+    ax.plot(port_width, te_log, 'x-', label="TE", color='r')
+    ax.plot(port_width, tm_log, 'x-', label="TM", color='b')
+    ax.legend()
+    ax.set_xlabel('port_width [um]')
+    ax.set_ylabel(f'Transmission [dB]')
+
+    return sims
+
+
+def convergence_mesh(
+    layout: gtd.core.layout,
+    tech: dict,
+    mesh: list=np.linspace(6, 60, 20)
+    ):
+
+    sims_mesh = []
+    sims = []
+
+    for m in mesh:
+        device = gtd.simprocessor.load_component_from_tech(ly=layout, tech=tech, z_span=2)
+        sims.append(gtd.simprocessor.build_sim_from_tech(
+            tech=tech,
+            layout=layout,
+            in_port=0,
+            wavl_min=1.545,
+            wavl_max=1.555,
+            wavl_pts=51,
+            mode_index=[0,1],
+            num_modes=2,
+            grid_cells_per_wvl=m,
+            symmetry=(
+                0,
+                0,
+                0,
+            ),  # ensure structure is symmetric across symmetry axis before triggering this!
+            z_span=2,
+            visualize=False,
+        ))
+    
+        sims[-1].upload()
+        # run the simulation. CHECK THE SIMULATION IN THE UI BEFORE RUNNING!
+        sims[-1].execute()
+        #  visualize the results
+        #sims[-1].visualize_results()     
+
+    fig, ax = plt.subplots()
+    te_log = []
+    tm_log = []
+    s12_te = 'S12_idx00'
+    s12_tm = 'S12_idx11'
+    for idx, sim in enumerate(sims):
+        s_te = sim.s_parameters.S[s12_te].s
+        s_tm = sim.s_parameters.S[s12_tm].s
+        te_log.append(10*np.log10(np.abs(s_te[len(s_te) // 2])**2))  # middle
+        tm_log.append(10*np.log10(np.abs(s_tm[len(s_tm) // 2])**2))  # middle  entry
+    ax.plot(mesh, te_log, 'x-', label="TE", color='r')
+    ax.plot(mesh, tm_log, 'x-', label="TM", color='b')
+    ax.legend()
+    ax.set_xlabel('Mesh [grid cells / wavl]')
     ax.set_ylabel(f'Transmission [dB]')
 
     return sims
@@ -78,3 +188,16 @@ if __name__ == "__main__":
         tech=technology,
         z_span=np.logspace(np.log10(0.221), np.log10(2), num=12),
         )
+
+    port_width_sweep = convergence_port_width(
+        layout=layout,
+        tech=technology,
+        port_width=np.logspace(np.log10(0.51), np.log10(3), num=12),
+        )
+
+    mesh_sweep = convergence_mesh(
+        layout=layout,
+        tech=technology,
+        mesh=np.linspace(6, 40, 20)
+        )
+# %%
