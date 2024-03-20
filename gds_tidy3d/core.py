@@ -7,8 +7,6 @@ Core objects module.
 
 import tidy3d as td
 import logging
-import numpy as np
-import matplotlib.pyplot as plt
 import os
 
 
@@ -294,7 +292,7 @@ class Simulation:
                             idx_out=get_port_name(monitor.name),
                             mode_in=sim_job["source"].mode_index,
                             mode_out=mode,
-                            freq=td.C_0 / (wavl*1e-6),  # convert back to SI. (m)
+                            freq=td.C_0 / (wavl),
                             s=amp,
                         )
                     )
@@ -360,7 +358,7 @@ class s_parameters:
             logging.info("Mode amplitudes in each port: \n")
             mag = [10 * np.log10(abs(i) ** 2) for i in i.s]
             phase = [np.angle(i) ** 2 for i in i.s]
-            ax.plot(td.C_0 / i.freq, mag, label=i.label)
+            ax.plot(1e6 * td.C_0 / i.freq, mag, label=i.label)
         ax.legend()
         return fig, ax
 
@@ -378,8 +376,10 @@ class sparam:
     def label(self):
         return f"S{self.idx_out}{self.idx_in}_idx{self.mode_out}{self.mode_in}"
 
-    def plot_freq_vs_s(self):
-        plt.plot(np.array(self.freq)/(1e-6*td.C_0), 10*np.log10(self.s**2))
+    def plot(self):
+        import numpy as np
+        import matplotlib.pyplot as plt
+        plt.plot((1e-6*td.C_0)/np.array(self.freq), 10*np.log10(self.s**2))
         plt.xlabel('Wavelength [um]')
         plt.ylabel('Transmission [dB]')
         plt.title('Frequency vs S')
