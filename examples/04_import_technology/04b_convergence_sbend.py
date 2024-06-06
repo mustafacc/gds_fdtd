@@ -24,8 +24,8 @@ def convergence_z_span(
             tech=tech,
             layout=layout,
             in_port=0,
-            wavl_min=1.545,
-            wavl_max=1.555,
+            wavl_min=1.500,
+            wavl_max=1.600,
             wavl_pts=51,
             mode_index=[0,1],
             num_modes=2,
@@ -44,7 +44,7 @@ def convergence_z_span(
         #  visualize the results
         #sims[-1].visualize_results()     
 
-    fig, ax = plt.subplots()
+    fig, ax1 = plt.subplots()
     te_log = []
     tm_log = []
     s12_te = 'S12_idx00'
@@ -54,11 +54,17 @@ def convergence_z_span(
         s_tm = sim.s_parameters.S[s12_tm].s
         te_log.append(10*np.log10(np.abs(s_te[len(s_te) // 2])**2))  # middle
         tm_log.append(10*np.log10(np.abs(s_tm[len(s_tm) // 2])**2))  # middle  entry
-    ax.plot(z_span, te_log, 'x-', label="TE", color='r')
-    ax.plot(z_span, tm_log, 'x-', label="TM", color='b')
-    ax.legend()
-    ax.set_xlabel('z_span [um]')
-    ax.set_ylabel(f'Transmission [dB]')
+    ax1.plot(z_span, te_log, 'x-', label="TE", color='r')
+    ax1.set_xlabel('Z_span [um]')
+    ax1.set_ylabel(f'Transmission [dB]', color='r')
+
+    ax2 = ax1.twinx()
+    ax2.plot(z_span, tm_log, 'x-', label="TM", color='b')
+    ax2.set_ylabel(f'Transmission [dB]', color='b')
+
+    fig.tight_layout()
+    fig.legend()
+    fig.show()
 
     return sims
 
@@ -77,8 +83,8 @@ def convergence_port_width(
             tech=tech,
             layout=layout,
             in_port=0,
-            wavl_min=1.545,
-            wavl_max=1.555,
+            wavl_min=1.500,
+            wavl_max=1.600,
             wavl_pts=51,
             mode_index=[0,1],
             num_modes=2,
@@ -133,8 +139,8 @@ def convergence_mesh(
             tech=tech,
             layout=layout,
             in_port=0,
-            wavl_min=1.545,
-            wavl_max=1.555,
+            wavl_min=1.500,
+            wavl_max=1.600,
             wavl_pts=51,
             mode_index=[0,1],
             num_modes=2,
@@ -154,7 +160,7 @@ def convergence_mesh(
         #  visualize the results
         #sims[-1].visualize_results()     
 
-    fig, ax = plt.subplots()
+    fig, ax1 = plt.subplots()
     te_log = []
     tm_log = []
     s12_te = 'S12_idx00'
@@ -164,11 +170,17 @@ def convergence_mesh(
         s_tm = sim.s_parameters.S[s12_tm].s
         te_log.append(10*np.log10(np.abs(s_te[len(s_te) // 2])**2))  # middle
         tm_log.append(10*np.log10(np.abs(s_tm[len(s_tm) // 2])**2))  # middle  entry
-    ax.plot(mesh, te_log, 'x-', label="TE", color='r')
-    ax.plot(mesh, tm_log, 'x-', label="TM", color='b')
-    ax.legend()
-    ax.set_xlabel('Mesh [grid cells / wavl]')
-    ax.set_ylabel(f'Transmission [dB]')
+    ax1.plot(mesh, te_log, 'x-', label="TE", color='r')
+    ax1.set_xlabel('Mesh [grid cells / wavl]')
+    ax1.set_ylabel(f'Transmission [dB]', color='r')
+
+    ax2 = ax1.twinx()
+    ax2.plot(mesh, tm_log, 'x-', label="TM", color='b')
+    ax2.set_ylabel(f'Transmission [dB]', color='b')
+
+    fig.tight_layout()
+    fig.legend()
+    fig.show()
 
     return sims
 
@@ -182,22 +194,24 @@ if __name__ == "__main__":
 
     layout = gtd.lyprocessor.load_layout(file_gds)
 
+    """
     # log sampling space, i expect output transission to be log too..
     z_span_sweep = convergence_z_span(
         layout=layout,
         tech=technology,
-        z_span=np.logspace(np.log10(0.221), np.log10(2), num=12),
+        z_span=np.logspace(np.log10(0.221), np.log10(4), num=14),
         )
-
+    """
     port_width_sweep = convergence_port_width(
         layout=layout,
         tech=technology,
         port_width=np.logspace(np.log10(0.51), np.log10(3), num=12),
         )
-
+    """
     mesh_sweep = convergence_mesh(
         layout=layout,
         tech=technology,
         mesh=np.linspace(6, 40, 20)
         )
+    """
 # %%
