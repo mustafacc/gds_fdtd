@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 @author: Mustafa Hammood
+Dual polarization simulation.
 """
 import gds_tidy3d as gtd
 import matplotlib.pyplot as plt

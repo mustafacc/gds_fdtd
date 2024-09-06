@@ -242,7 +242,6 @@ def make_field_monitor(device, freqs=2e14, axis="z", z_center=None):
         name=f"{axis}_field",
     )
 
-
 def make_sim(
     device,
     wavl_min: float = 1.45,

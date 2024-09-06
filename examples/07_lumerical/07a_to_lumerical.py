@@ -1,4 +1,7 @@
 #%% send a component to a lumerical instance
+"""
+@author: Mustafa Hammood
+"""
 import os
 import lumapi
 from gds_tidy3d.lum_tools import to_lumerical

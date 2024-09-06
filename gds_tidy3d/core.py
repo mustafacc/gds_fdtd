@@ -11,7 +11,7 @@ import os
 
 
 def is_point_inside_polygon(point, polygon_points):
-    """Identify if a point inside a polygon using Shapely.
+    """Test if a point inside a polygon using Shapely.
 
     Args:
         point (list): Point for test [x, y]
@@ -262,14 +262,15 @@ class Simulation:
 
             return amps
 
-        self.s_parameters = s_parameters()
+        self.s_parameters = s_parameters()  # initialize empty s parameters
 
+        self.results = []
         for sim_job in self.sim_jobs:
             if not os.path.exists(self.device.name):
                 os.makedirs(self.device.name)
-            self.results = sim_job["job"].run(
+            self.results.append(sim_job["job"].run(
                 path=os.path.join(self.device.name, f"{sim_job['name']}.hdf5")
-            )
+            ))
             for mode in range(sim_job["num_modes"]):
                 amps_arms = measure_transmission(
                     in_port=sim_job["in_port"],
@@ -279,7 +280,7 @@ class Simulation:
 
                 logging.info("Mode amplitudes in each port: \n")
                 wavl = np.linspace(self.wavl_min, self.wavl_max, self.wavl_pts)
-                for amp, monitor in zip(amps_arms, self.results.simulation.monitors):
+                for amp, monitor in zip(amps_arms, self.results[-1].simulation.monitors):
                     logging.info(f'\tmonitor     = "{monitor.name}"')
                     logging.info(f"\tamplitude^2 = {[abs(i)**2 for i in amp]}")
                     logging.info(
@@ -296,6 +297,8 @@ class Simulation:
                             s=amp,
                         )
                     )
+        if isinstance(self.results, list) and len(self.results) == 1:
+            self.results = self.results[0]
 
     def visualize_results(self):
         import matplotlib.pyplot as plt
@@ -303,14 +306,25 @@ class Simulation:
         self.s_parameters.plot()
 
         try:
-            fig, ax = plt.subplots(1, 1, figsize=(16, 3))
-            self.results.plot_field(
-                "field",
-                "Ey",
-                freq=td.C_0 / ((self.wavl_max + self.wavl_min) / 2),
-                ax=ax,
-            )
-            fig.show()
+            if isinstance(self.results, list):
+                for job_result in self.results:
+                    fig, ax = plt.subplots(1, 1, figsize=(16, 3))
+                    job_result.plot_field(
+                        "field",
+                        "Ey",
+                        freq=td.C_0 / ((self.wavl_max + self.wavl_min) / 2),
+                        ax=ax,
+                    )
+                    fig.show()
+            else:
+                fig, ax = plt.subplots(1, 1, figsize=(16, 3))
+                self.results.plot_field(
+                    "field",
+                    "Ey",
+                    freq=td.C_0 / ((self.wavl_max + self.wavl_min) / 2),
+                    ax=ax,
+                )
+                fig.show()
         except:
             return
 
@@ -423,21 +437,27 @@ def parse_yaml_tech(file_path):
 
     # Parsing pinrec layers
     parsed_data["pinrec"] = [
-        {"layer": pinrec.get("layer")} for pinrec in technology.get("pinrec", [])
+        {"layer": list(pinrec.get("layer"))}  # Convert to list
+        for pinrec in technology.get("pinrec", [])
     ]
 
     # Parsing devrec layers
     parsed_data["devrec"] = [
-        {"layer": devrec.get("layer")} for devrec in technology.get("devrec", [])
+        {"layer": list(devrec.get("layer"))}  # Convert to list
+        for devrec in technology.get("devrec", [])
     ]
 
     # Parsing device layers
     parsed_data["device"] = [
         {
-            "layer": device.get("layer"),
+            "layer": list(device.get("layer")),  # Convert to list
             "z_base": device.get("z_base"),
             "z_span": device.get("z_span"),
-            "material": device.get("material"),
+            "material": {
+                "tidy3d_db": {
+                    "model": list(device["material"]["tidy3d_db"].get("model", []))  # Ensure model is a list
+                }
+            },
             "sidewall_angle": device.get("sidewall_angle"),
         }
         for device in technology.get("device", [])

@@ -1,4 +1,8 @@
 # %%
+"""
+@author: Mustafa Hammood
+Build a tidy3d simulation from gdsfactory cell.
+"""
 import gds_tidy3d as gtd
 import gdsfactory as gf
 import os

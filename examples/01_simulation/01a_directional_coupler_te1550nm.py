@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 @author: Mustafa Hammood
+Example defining a tidy3d simulation from manually defined geometry.
 """
 import tidy3d as td
 import gds_tidy3d as gtd
