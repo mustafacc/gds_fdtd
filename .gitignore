@@ -135,3 +135,4 @@ examples/private/
 *.hdf5
 
 .vscode/
+bin/act
