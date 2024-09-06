@@ -3,10 +3,10 @@ name: Build and Test (Flit)
 on:
   push:
     branches: 
-      - '**'  # This will trigger the workflow on push to any branch
+      - '**'
   pull_request:
     branches: 
-      - '**'  # This will trigger the workflow on pull requests to any branch
+      - '**'
 
 jobs:
   build-and-test-flit:
@@ -21,27 +21,27 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.10'  # Specify the Python version you need
+        python-version: '3.10'
 
-    # Step 3: Install Flit
-    - name: Install Flit
+    # Step 3: Install Flit and Coverage
+    - name: Install Flit and Coverage
       run: |
-        pip install flit
+        pip install flit coverage
 
     # Step 4: Install dependencies using Flit (with optional gdsfactory)
     - name: Install dependencies
       run: |
-        export FLIT_ROOT_INSTALL=1  # Allow root installs
+        export FLIT_ROOT_INSTALL=1
         flit install --deps=develop --extras=gdsfactory
 
-    # Step 5: Run tests
+    # Step 5: Run tests with coverage
     - name: Run tests
       run: |
-        coverage run -m pytest
+        coverage run --source=gds_fdtd -m pytest
         coverage report
 
     # Step 6: Upload coverage reports to Codecov
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}  # Ensure you have set CODECOV_TOKEN as a secret in GitHub
+        token: ${{ secrets.CODECOV_TOKEN }}
