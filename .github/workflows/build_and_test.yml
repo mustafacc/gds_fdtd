@@ -23,10 +23,10 @@ jobs:
       with:
         python-version: '3.10'
 
-    # Step 3: Install Flit and Coverage
-    - name: Install Flit and Coverage
+    # Step 3: Install Flit, pytest, pytest-cov, and Coverage
+    - name: Install Flit, pytest, pytest-cov, and Coverage
       run: |
-        pip install flit
+        pip install flit pytest pytest-cov coverage
     
     # Step 4: Install dependencies (including dev dependencies)
     - name: Install dependencies

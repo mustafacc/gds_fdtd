@@ -12,24 +12,29 @@ jobs:
   build-docs:
     runs-on: ubuntu-latest
     steps:
+      # Step 1: Check out the repository
       - name: Check out the repository
         uses: actions/checkout@v2
 
+      # Step 2: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.10'
 
+      # Step 3: Install dependencies
       - name: Install dependencies
         run: |
           pip install sphinx furo sphinx-toggleprompt sphinx-copybutton
 
+      # Step 4: Build the docs
       - name: Build the docs
         run: |
           sphinx-build -b html docs docs/_build/html
 
+      # Step 5: Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          personal_token: ${{ secrets.GH_PAT }}  # Use the personal access token
           publish_dir: docs/_build/html
