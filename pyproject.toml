@@ -32,6 +32,8 @@ dependencies = [
 
 [project.optional-dependencies]
 gdsfactory = ["gdsfactory>=8.0"]
+dev = ["pytest", "coverage"]
+
 
 [tool.pytest.ini_options]
 addopts = "--cov=."
