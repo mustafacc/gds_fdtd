@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-"""Tests for `gds_tidy3d` package."""
+"""Tests for `gds_fdtd` package."""
 
 import pytest
 import klayout.db as pya
 import os
 import numpy as np
-from gds_tidy3d import core, lyprocessor, simprocessor
+from gds_fdtd import core, lyprocessor, simprocessor
 import tidy3d as td
 
 

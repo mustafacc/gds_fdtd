@@ -1,11 +1,11 @@
-# gds_tidy3d
+# gds_fdtd
 
 ![alternative text](/docs/banner.png)
 
-![codecov](https://codecov.io/gh/mustafacc/gds_tidy3d/branch/main/graph/badge.svg)
-![build](https://github.com/mustafacc/gds_tidy3d/actions/workflows/main.yml/badge.svg)
+![codecov](https://codecov.io/gh/mustafacc/gds_fdtd/branch/main/graph/badge.svg)
+![build](https://github.com/mustafacc/gds_fdtd/actions/workflows/main.yml/badge.svg)
 
-Minimal Python module to assist in setting up Tidy3D FDTD simulation on planar nanophotonic devices.
+Minimal Python module to assist in setting up FDTD simulations on planar nanophotonic devices using FDTD solvers such as Tidy3D.
 
 ## Features
 - Generate tidy3d simulation of a gds device systematically.
@@ -16,6 +16,6 @@ Minimal Python module to assist in setting up Tidy3D FDTD simulation on planar n
 ## Installation
 
 ```bash
-git clone git@github.com:mustafacc/gds_tidy3d.git
-cd gds_tidy3d
+git clone git@github.com:mustafacc/gds_fdtd.git
+cd gds_fdtd
 pip install -e .[dev]

@@ -8,7 +8,6 @@ Tidy3D simulation processing module.
 import tidy3d as td
 import numpy as np
 import matplotlib.pyplot as plt
-import gdsfactory as gf 
 from .core import structure, region, port, component, Simulation
 from .lyprocessor import (
     load_structure,
@@ -513,7 +512,7 @@ def build_sim_from_tech(tech: dict, layout, in_port=0, **kwargs):
         )
 
 
-def from_gdsfactory(c: gf.Component, tech: dict, z_span: float=4.) -> component:
+def from_gdsfactory(c: 'gf.Component', tech: dict, z_span: float = 4.) -> 'component':
     """Convert gdsfactory Component to a component.
 
     Args:
@@ -524,6 +523,11 @@ def from_gdsfactory(c: gf.Component, tech: dict, z_span: float=4.) -> component:
     Returns:
         component: parsed gdsfactory component.
     """
+    try:
+        import gdsfactory as gf
+    except ImportError:
+        raise ImportError("gdsfactory is not installed. Please install it using 'pip install .[gdsfactory]'")
+
     device_wg = []
     ports = []
 
