@@ -26,13 +26,13 @@ jobs:
     # Step 3: Install Flit and Coverage
     - name: Install Flit and Coverage
       run: |
-        pip install flit coverage
-
-    # Step 4: Install dependencies using Flit (with optional gdsfactory)
+        pip install flit
+    
+    # Step 4: Install dependencies (including dev dependencies)
     - name: Install dependencies
       run: |
         export FLIT_ROOT_INSTALL=1
-        flit install --deps=develop --extras=gdsfactory
+        flit install --deps=develop --extras=dev  # Install dev dependencies
 
     # Step 5: Run tests with coverage
     - name: Run tests
