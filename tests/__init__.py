@@ -1,1 +1,1 @@
-"""Unit test package for gds_tidy3d."""
+"""Unit test package for gds_fdtd."""
