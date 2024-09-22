@@ -1,5 +1,5 @@
 """
-GDS_Tidy3D integration toolbox.
+gds_fdtd integration toolbox.
 
 Layout processing module.
 @author: Mustafa Hammood, 2024
@@ -52,40 +52,55 @@ def dilate_1d(vertices, extension=1, dim="y"):
     else:
         raise ValueError("Dimension must be 'x' or 'y' or 'xy'")
 
-def load_layout(fname: str):
-    import klayout.db as pya
+def load_layout(fname: str, top_cell: str = None) -> layout:
+    """
+    Load a GDS layout and return a layout object.
 
+    Args:
+        fname (str): Path to the GDS file.
+        top_cell (str, optional): Name of the top cell. If None, the function will attempt to find a single top cell. Defaults to None.
+
+    Returns:
+        layout: A layout object containing the name, layout, and top cell.
+
+    Raises:
+        ValueError: If more than one top cell is found and top_cell is not specified, or if the specified top cell is not found.
+    """
     ly = pya.Layout()
     ly.read(fname)
-    if ly.cells() > 1:
-        logging.error("More than one top cell found, ensure only 1 top cell exists.")
-        raise ValueError("More than one top cell found, ensure only 1 top cell exists.")
+    
+    if top_cell is None:
+        if len(ly.top_cells()) > 1:
+            err_msg = "More than one top cell found, ensure only 1 top cell exists. Otherwise, specify the cell using the top_cell argument."
+            logging.error(err_msg)
+            raise ValueError(err_msg)
+        else:
+            cell = ly.top_cell()
+            name = cell.name
     else:
-        cell = ly.top_cell()
+        cell = ly.cell(top_cell)
+        if cell is None:
+            err_msg = f"Top cell with name {top_cell} not found."
+            logging.error(err_msg)
+            raise ValueError(err_msg)
         name = cell.name
+
     return layout(name, ly, cell)
 
 
-def load_region(layout: layout, layer: list[int, int]=[68, 0], z_center: float=0., z_span: float=5., extension: float=1.3):
+def load_region(layout: layout, layer: list[int, int] = [68, 0], z_center: float = 0., z_span: float = 5., extension: float = 1.3):
     """
     Get device bounds.
 
-    Parameters
-    ----------
-    layout : SiEPIC Tidy3d layout type
-        layout to extract the polygons from.
-    layer : klayout.db (pya) layout.layer() type
-        Layer to place detect the devrec object from.
-    z_center: float
-        Z-center of the layout. Defaults to 0 (microns).
-    z_span: float
-        Z-span of the layout. Defaults to 5 (microns).
-    extension: float
-        amount of extended region to retrieve beyond specified region.
+    Args:
+        layout (layout): SiEPIC Tidy3d layout type to extract the polygons from.
+        layer (list[int, int]): Layer to detect the devrec object from. Defaults to [68, 0].
+        z_center (float): Z-center of the layout in microns. Defaults to 0.
+        z_span (float): Z-span of the layout in microns. Defaults to 5.
+        extension (float): Amount of extended region to retrieve beyond the specified region. Defaults to 1.3.
 
-    Returns
-    -------
-    region : region object type
+    Returns:
+        region: Region object type.
     """
 
     def get_kdb_layer(layer):

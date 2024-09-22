@@ -1,5 +1,5 @@
 """
-GDS_Tidy3D integration toolbox.
+gds_fdtd integration toolbox.
 
 Core objects module.
 @author: Mustafa Hammood, 2024
@@ -44,6 +44,36 @@ class layout:
         return self.ly.dbu
 
 
+def calculate_polygon_extension(center, width, direction, buffer=4.0):
+    if direction == 0:
+        return [
+            [center[0], center[1] + width / 2],
+            [center[0] + buffer, center[1] + width / 2],
+            [center[0] + buffer, center[1] - width / 2],
+            [center[0], center[1] - width / 2],
+        ]
+    elif direction == 180:
+        return [
+            [center[0], center[1] + width / 2],
+            [center[0] - buffer, center[1] + width / 2],
+            [center[0] - buffer, center[1] - width / 2],
+            [center[0], center[1] - width / 2],
+        ]
+    elif direction == 90:
+        return [
+            [center[0] - width / 2, center[1]],
+            [center[0] - width / 2, center[1] + buffer],
+            [center[0] + width / 2, center[1] + buffer],
+            [center[0] + width / 2, center[1]],
+        ]
+    elif direction == 270:
+        return [
+            [center[0] - width / 2, center[1]],
+            [center[0] - width / 2, center[1] - buffer],
+            [center[0] + width / 2, center[1] - buffer],
+            [center[0] + width / 2, center[1]],
+        ]
+
 class port:
     def __init__(
         self, name: str, center: list[float, float], width: float, direction: float
@@ -76,35 +106,7 @@ class port:
         return int("".join(char for char in reversed(self.name) if char.isdigit()))
 
     def polygon_extension(self, buffer: float = 4.0):
-        if self.direction == 0:
-            return [
-                [self.center[0], self.center[1] + self.width / 2],
-                [self.center[0] + buffer, self.center[1] + self.width / 2],
-                [self.center[0] + buffer, self.center[1] - self.width / 2],
-                [self.center[0], self.center[1] - self.width / 2],
-            ]
-        elif self.direction == 180:
-            return [
-                [self.center[0], self.center[1] + self.width / 2],
-                [self.center[0] - buffer, self.center[1] + self.width / 2],
-                [self.center[0] - buffer, self.center[1] - self.width / 2],
-                [self.center[0], self.center[1] - self.width / 2],
-            ]
-        elif self.direction == 90:
-            return [
-                [self.center[0] - self.width / 2, self.center[1]],
-                [self.center[0] - self.width / 2, self.center[1] + buffer],
-                [self.center[0] + self.width / 2, self.center[1] + buffer],
-                [self.center[0] + self.width / 2, self.center[1]],
-            ]
-        elif self.direction == 270:
-            return [
-                [self.center[0] - self.width / 2, self.center[1]],
-                [self.center[0] - self.width / 2, self.center[1] - buffer],
-                [self.center[0] + self.width / 2, self.center[1] - buffer],
-                [self.center[0] + self.width / 2, self.center[1]],
-            ]
-
+        return calculate_polygon_extension(self.center, self.width, self.direction, buffer)
 
 class structure:
     def __init__(
@@ -177,23 +179,26 @@ class component:
         self.structures = structures
         self.ports = ports
         self.bounds = bounds
-        self.get_port_z()  # initialize ports z center and z span
+        self.initialize_ports_z()  # initialize ports z center and z span
 
-    def get_port_z(self):
-        # iterate through each port
-        for p in self.ports:
-            # check if port location is within any structure
-            for s in self.structures:
-                # TODO: hack: if s is a list then it's not a box/clad region, find a better way to identify this..
-                if type(s) == list:
-                    for poly in s:
-                        if is_point_inside_polygon(p.center[:2], poly.polygon):
-                            p.center[2] = s[0].z_base + s[0].z_span / 2
-                            p.height = s[0].z_span
-                            p.material = s[0].material
-            if p.height == None:
-                logging.warning(f"Cannot find height for port {p.name}")
-        return
+    def initialize_ports_z(self):
+        initialize_ports_z(self.ports, self.structures)
+
+def initialize_ports_z(ports, structures):
+    # iterate through each port
+    for p in ports:
+        # check if port location is within any structure
+        for s in structures:
+            # TODO: hack: if s is a list then it's not a box/clad region, find a better way to identify this..
+            if type(s) == list:
+                for poly in s:
+                    if is_point_inside_polygon(p.center[:2], poly.polygon):
+                        p.center[2] = s[0].z_base + s[0].z_span / 2
+                        p.height = s[0].z_span
+                        p.material = s[0].material
+        if p.height == None:
+            logging.warning(f"Cannot find height for port {p.name}")
+    return
 
 
 class Simulation:
@@ -245,16 +250,27 @@ class Simulation:
             Constructs a "row" of the scattering matrix.
             """
             num_ports = np.size(self.device.ports)
-            input_amp = self.results[in_port.name].amps.sel(
+
+            if isinstance(self.results, list):
+                if len(self.results) == 1:
+                    results = self.results[0]
+                else:
+                    # TBD: Handle the case where self.results is a list with more than one item
+                    logger.warning("Multiple results handler is WIP, using first results entry")
+                    results = self.results[0]
+            else:
+                results = self.results
+
+            input_amp = results[in_port.name].amps.sel(
                 direction=get_source_direction(in_port),
                 mode_index=in_mode_idx,
             )
             amps = np.zeros((num_ports, self.wavl_pts), dtype=complex)
             directions = get_directions(self.device.ports)
             for i, (monitor, direction) in enumerate(
-                zip(self.results.simulation.monitors[:num_ports], directions)
+                zip(results.simulation.monitors[:num_ports], directions)
             ):
-                amp = self.results[monitor.name].amps.sel(
+                amp = results[monitor.name].amps.sel(
                     direction=direction, mode_index=out_mode_idx
                 )
                 amp_normalized = amp / input_amp

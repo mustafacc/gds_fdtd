@@ -1,11 +1,11 @@
 """
-GDS_Tidy3D integration toolbox.
+gds_fdtd integration toolbox.
 
 Lumerical tools module.
 @author: Mustafa Hammood, 2024
 """
 
-from gds_tidy3d.core import structure, component
+from gds_fdtd.core import structure, component
 import logging
 import lumapi
 import numpy as np

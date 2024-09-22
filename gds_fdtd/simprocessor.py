@@ -1,5 +1,5 @@
 """
-GDS_Tidy3D integration toolbox.
+gds_fdtd integration toolbox.
 
 Tidy3D simulation processing module.
 @author: Mustafa Hammood, 2024
