@@ -4,7 +4,7 @@
 convergence testing examples using an unideal S-bend test case. 
 @author: Mustafa Hammood
 """
-import gds_tidy3d as gtd
+import gds_fdtd as gtd
 import tidy3d as td
 import os
 import matplotlib.pyplot as plt
@@ -187,12 +187,13 @@ def convergence_mesh(
 
 if __name__ == "__main__":
 
-    tech_path = os.path.join(os.path.dirname(__file__), "tech.yaml")
+    tech_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tech.yaml")
     technology = gtd.core.parse_yaml_tech(tech_path)
 
-    file_gds = os.path.join(os.path.dirname(__file__), "sbend.gds")
+    # Define the path to the GDS file
+    file_gds = os.path.join(os.path.dirname(os.path.dirname(__file__)), "devices.gds")
 
-    layout = gtd.lyprocessor.load_layout(file_gds)
+    layout = gtd.lyprocessor.load_layout(file_gds, top_cell="sbend_dontfabme")
 
     """
     # log sampling space, i expect output transission to be log too..

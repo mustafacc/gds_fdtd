@@ -4,25 +4,23 @@
 @author: Mustafa Hammood
 """
 import tidy3d as td
-import gds_tidy3d as gtd
+import gds_fdtd as gtd
 import os
 
-file_gds = os.path.join(os.path.dirname(__file__), "escalator_te1550.gds")
+# Define the path to the GDS file
+file_gds = os.path.join(os.path.dirname(os.path.dirname(__file__)), "devices.gds")
 
 # define 3D geometry paramters not captured in the 2D layout
 thickness_si = 0.22
-thickness_sin = 0.4
-gap_si_sin = 0.1
 thickness_sub = 2
 thickness_super = 3
 sidewall_angle = 88  # sidewall angle of the structures
 
 # define simulation parameters
-z_span = 3  # Z-span of the simulation
+z_span = 4  # Z-span of the simulation
 
 # define materials structures
 mat_si = td.material_library["cSi"]["Li1993_293K"]
-mat_sin = td.material_library["Si3N4"]["Philipp1973Sellmeier"]
 mat_sub = td.Medium(permittivity=1.48**2)
 mat_super = td.Medium(permittivity=1.48**2)
 
@@ -33,15 +31,14 @@ wavl_max = 1.65  # simulation wavelength end (microns)
 wavl_pts = 101
 
 # define symmetry across Z axis (TE mode) - set to -1 for anti symmetric
-symmetry = (0, 0, 0)
+# warning: ensure structure is symmetric across symmetry axis!
+symmetry = (0, 0, 1)
 
 # %% load and process the layout file
-layout = gtd.lyprocessor.load_layout(file_gds)
+layout = gtd.lyprocessor.load_layout(file_gds, top_cell="crossing_te1550")
 
 # load all the ports in the device and (optional) initialize each to have a center
 ports_si = gtd.lyprocessor.load_ports(layout, layer=[1, 10])
-
-ports_sin = gtd.lyprocessor.load_ports(layout, layer=[1, 11])
 
 # load the device simulation region
 bounds = gtd.lyprocessor.load_region(
@@ -50,21 +47,7 @@ bounds = gtd.lyprocessor.load_region(
 
 # load the silicon structures in the device in layer (1,0)
 device_si = gtd.lyprocessor.load_structure(
-    layout,
-    name="Si",
-    layer=[1, 0],
-    z_base=0,
-    z_span=thickness_si,
-    material=mat_si
-)
-
-device_sin = gtd.lyprocessor.load_structure(
-    layout,
-    name="SiN",
-    layer=[2, 0],
-    z_base=thickness_si + gap_si_sin,
-    z_span=thickness_sin,
-    material=mat_sin,
+    layout, name="Si", layer=[1, 0], z_base=0, z_span=thickness_si, material=mat_si
 )
 
 # make the superstrate and substrate based on device bounds
@@ -79,8 +62,8 @@ device_sub = gtd.lyprocessor.load_structure_from_bounds(
 # create the device by loading the structures
 device = gtd.core.component(
     name=layout.name,
-    structures=[device_sub, device_super, device_si, device_sin],
-    ports=ports_si + ports_sin,
+    structures=[device_sub, device_super, device_si],
+    ports=ports_si,
     bounds=bounds,
 )
 
@@ -91,8 +74,10 @@ simulation = gtd.simprocessor.make_sim(
     wavl_max=wavl_max,
     wavl_pts=wavl_pts,
     symmetry=symmetry,
+    in_port= device.ports[0], #[p for p in device.ports], # for complete s-parameters
     z_span=z_span,
-    field_monitor_axis="y",
+    field_monitor_axis=None,
+    grid_cells_per_wvl=6,
 )
 # %% upload and run the simulation
 # create job, upload sim to server to begin running
@@ -101,3 +86,5 @@ simulation.upload()
 simulation.execute()
 # %% visualize the results
 simulation.visualize_results()
+
+# %%

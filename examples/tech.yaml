@@ -36,4 +36,4 @@ technology:
       material:
         tidy3d_db:
           model: [Si3N4, Philipp1973Sellmeier]
-      sidewall_angle: 80
+      sidewall_angle: 90

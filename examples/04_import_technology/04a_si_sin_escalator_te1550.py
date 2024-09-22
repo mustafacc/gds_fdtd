@@ -3,18 +3,20 @@
 """
 @author: Mustafa Hammood
 """
-import gds_tidy3d as gtd
+import gds_fdtd as gtd
 import tidy3d as td
 import os
 
 if __name__ == "__main__":
 
-    tech_path = os.path.join(os.path.dirname(__file__), "tech.yaml")
+    tech_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tech.yaml")
     technology = gtd.core.parse_yaml_tech(tech_path)
 
-    file_gds = os.path.join(os.path.dirname(__file__), "si_sin_escalator.gds")
+    # Define the path to the GDS file
+    file_gds = os.path.join(os.path.dirname(os.path.dirname(__file__)), "devices.gds")
 
-    layout = gtd.lyprocessor.load_layout(file_gds)
+
+    layout = gtd.lyprocessor.load_layout(file_gds, top_cell='si_sin_escalator_te1550')
 
     device = gtd.simprocessor.load_component_from_tech(ly=layout, tech=technology, z_span=4)
 
@@ -22,9 +24,10 @@ if __name__ == "__main__":
         tech=technology,
         layout=layout,
         in_port=0,
-        wavl_min=1.5,
-        wavl_max=1.6,
-        wavl_pts=101,
+        wavl_min=1.,
+        wavl_max=1.4,
+        wavl_pts=501,
+        grid_cells_per_wvl=6,
         symmetry=(
             0,
             0,
