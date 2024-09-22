@@ -33,7 +33,7 @@ dependencies = [
 [project.optional-dependencies]
 gdsfactory = ["gdsfactory>=8.0"]
 dev = ["pytest", "coverage"]
-
+prefab = ["prefab==1.0.4"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=."
