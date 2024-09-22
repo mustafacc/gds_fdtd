@@ -10,7 +10,7 @@ from gds_fdtd.simprocessor import from_gdsfactory, make_sim
 
 
 if __name__ == '__main__':
-    tech_file_path = os.path.join(os.path.dirname(__file__), "tech.yaml")
+    tech_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tech.yaml")
     technology = gtd.core.parse_yaml_tech(tech_file_path)
 
     device = from_gdsfactory(c=gf.components.bend_circular(), tech=technology)
@@ -20,6 +20,7 @@ if __name__ == '__main__':
         z_span=2.,
         symmetry=(0, 0, 1),
         mode_index=0,
+        grid_cells_per_wvl=6,
     )
     # %%
     simulation.upload()

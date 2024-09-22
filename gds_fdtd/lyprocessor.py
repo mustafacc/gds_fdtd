@@ -52,6 +52,54 @@ def dilate_1d(vertices, extension=1, dim="y"):
     else:
         raise ValueError("Dimension must be 'x' or 'y' or 'xy'")
 
+def apply_prefab(fname, top_cell, MODEL_NAME="ANT_NanoSOI_ANF1_d9"):
+    import prefab as pf
+    device = pf.read.from_gds(gds_path=fname, cell_name=top_cell)
+
+    prediction = device.predict(model=pf.models[MODEL_NAME])
+    prediction_bin = prediction.binarize()
+
+    prediction_bin.to_gds(gds_path=fname, cell_name=top_cell, gds_layer=(1, 0))
+    return
+
+def load_device(fname: str, tech, top_cell: str = None, z_span:float=3.0, z_center:float|None=None, prefab=None):
+    from .simprocessor import load_component_from_tech
+    ly = pya.Layout()
+    ly.read(fname)
+    
+    if top_cell is None:
+        if len(ly.top_cells()) > 1:
+            err_msg = "More than one top cell found, ensure only 1 top cell exists. Otherwise, specify the cell using the top_cell argument."
+            logging.error(err_msg)
+            raise ValueError(err_msg)
+        else:
+            cell = ly.top_cell()
+            name = cell.name
+    else:
+        cell = ly.cell(top_cell)
+        if cell is None:
+            err_msg = f"Top cell with name {top_cell} not found."
+            logging.error(err_msg)
+            raise ValueError(err_msg)
+        name = cell.name
+
+    c = load_component_from_tech(ly = layout(name, ly, cell), tech=tech, z_span=z_span, z_center=z_center)
+
+    dbu = ly.dbu  # Get the database unit (dbu) from the layout
+
+    for p in c.ports:
+        polygon = p.polygon_extension(buffer=2)
+        layer_index = ly.layer(pya.LayerInfo(1, 0))
+        # Convert polygon vertices from um to dbu
+        polygon_dbu = [pya.Point(int(pt[0] / dbu), int(pt[1] / dbu)) for pt in polygon]
+        cell.shapes(layer_index).insert(pya.Polygon(polygon_dbu))
+    
+    new_layout_path = fname.replace(".gds", "_with_extensions.gds")
+    ly.write(new_layout_path)
+    
+    if prefab is not None:
+        apply_prefab(fname=new_layout_path, top_cell=top_cell, MODEL_NAME=prefab)
+
 def load_layout(fname: str, top_cell: str = None) -> layout:
     """
     Load a GDS layout and return a layout object.

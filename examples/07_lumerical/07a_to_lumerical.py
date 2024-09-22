@@ -4,10 +4,10 @@
 """
 import os
 import lumapi
-from gds_tidy3d.lum_tools import to_lumerical
-from gds_tidy3d.core import parse_yaml_tech
-from gds_tidy3d.simprocessor import load_component_from_tech
-from gds_tidy3d.lyprocessor import load_layout
+from gds_fdtd.lum_tools import to_lumerical
+from gds_fdtd.core import parse_yaml_tech
+from gds_fdtd.simprocessor import load_component_from_tech
+from gds_fdtd.lyprocessor import load_layout
 
 os.environ['QT_QPA_PLATFORM'] = 'xcb'  # i need to do this to get my lumerical gui to work in linux... comment out if not necessary
 

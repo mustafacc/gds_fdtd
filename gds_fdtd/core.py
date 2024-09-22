@@ -184,6 +184,24 @@ class component:
     def initialize_ports_z(self):
         initialize_ports_z(self.ports, self.structures)
 
+    def export_gds(self, export_dir=None):
+        import klayout.db as pya
+
+        layout = pya.Layout()
+        layout.dbu = 0.001  # Set the database unit to 0.001 um
+        top_cell = layout.create_cell(self.name)
+        layer_info = pya.LayerInfo(1, 0)  # You might want to adjust the layer information as needed
+        layer = layout.layer(layer_info)
+
+        for polygon in [s[0].polygon for s in self.structures if isinstance(s, list)]:
+            pya_polygon = pya.Polygon([pya.Point(int(point[0] / layout.dbu), int(point[1] / layout.dbu)) for point in polygon])
+            top_cell.shapes(layer).insert(pya_polygon)
+
+        if export_dir is None:
+            export_dir = os.getcwd()
+        layout.write(os.path.join(export_dir, f"{self.name}.gds"))
+        return
+
 def initialize_ports_z(ports, structures):
     # iterate through each port
     for p in ports:
